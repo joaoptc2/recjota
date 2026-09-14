@@ -1,0 +1,22 @@
+# Ponte de mídia pública (Seção 7.4).
+#
+# Este diretório recebe cópias TEMPORÁRIAS da mídia, só porque a API da Meta
+# exige URL pública. Nada aqui pode ser executado, listado ou indexado.
+
+Options -Indexes
+
+# Nenhuma execução de código, em nenhuma hipótese.
+<FilesMatch "\.(php|phtml|php[0-9]|phar|cgi|pl|py|sh|htaccess)$">
+    Require all denied
+</FilesMatch>
+
+# Allowlist de extensões de mídia; tudo o mais é negado.
+<FilesMatch "^.*\.(jpg|jpeg|png|webp|gif|mp4|mov|m4v)$">
+    Require all granted
+    Header set X-Robots-Tag "noindex, nofollow, noarchive"
+    Header set Cache-Control "private, max-age=600"
+</FilesMatch>
+
+<FilesMatch "^(?!.*\.(jpg|jpeg|png|webp|gif|mp4|mov|m4v)$).*$">
+    Require all denied
+</FilesMatch>

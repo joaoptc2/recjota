@@ -1,0 +1,30 @@
+*.log
+.DS_Store
+.env
+.env.backup
+.env.production
+.phpactor.json
+.phpunit.result.cache
+/.fleet
+/.idea
+/.nova
+/.phpunit.cache
+/.vscode
+/.zed
+/auth.json
+/node_modules
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/vendor
+Homestead.json
+Homestead.yaml
+Thumbs.db
+/database/database.sqlite
+/public/media-tmp/*
+!/public/media-tmp/.htaccess
+
+# R7: o servidor não roda Node. Por isso /public/build NÃO é ignorado — os
+# assets são compilados localmente (npm run build) e vão versionados, para que
+# o deploy seja apenas cópia de arquivos.
