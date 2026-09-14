@@ -82,6 +82,10 @@ cp "$ROOT/public/media-tmp/.htaccess"   "$STAGE/public_html/media-tmp/.htaccess"
 
 cp "$ROOT/DEPLOY.md" "$STAGE/LEIA-ME-PRIMEIRO.md"
 
+# Fica na raiz do pacote, e não em public_html, porque é ferramenta de
+# emergência: só entra no ar quando alguém decide copiá-la para lá.
+cp "$ROOT/deploy/diagnostico.php" "$STAGE/diagnostico.php"
+
 echo "==> Conferindo o pacote"
 test -f "$STAGE/app/vendor/autoload.php"       || { echo "FALHOU: vendor ausente"; exit 1; }
 test -f "$STAGE/app/.env"                      || { echo "FALHOU: .env ausente"; exit 1; }

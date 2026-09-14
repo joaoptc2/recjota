@@ -190,6 +190,34 @@ console só abre para o proprietário autenticado.
 
 ## 9. Problemas comuns
 
+### Ferramenta de diagnóstico
+
+Quando o site não abre e não há SSH para investigar, o pacote traz
+`diagnostico.php` na raiz. Copie o arquivo para dentro de `public_html/` e
+acesse `https://seudominio.com.br/diagnostico.php`: ele diz onde os arquivos
+realmente estão, quem consegue lê-los e o que falta, item por item.
+
+Ele não lê o conteúdo do `.env` nem imprime senhas. Ainda assim, **apague o
+arquivo assim que terminar** — ele revela a estrutura de pastas do servidor.
+
+### "403 Forbidden — Access to this resource on the server is denied!"
+
+Esta mensagem é do servidor da Hostinger, não do sistema. São três causas, em
+ordem de frequência:
+
+1. **O `index.php` não está solto em `public_html`.** Ao descompactar, é comum
+   sobrar um nível: `public_html/public_html/index.php` ou
+   `public_html/recjota/...`. O `index.php` precisa estar diretamente em
+   `public_html`, e a pasta `app` um nível ACIMA, fora dele.
+2. **Permissão errada.** Pastas precisam ser `755` e arquivos `644`. Com `700`
+   na pasta ou `600` no arquivo, o servidor não consegue ler e devolve 403.
+   Gerenciador de Arquivos › botão direito › Permissões.
+3. **Falta o `.htaccess`.** Vários clientes de FTP não enviam arquivos que
+   começam com ponto. Ligue a opção de mostrar arquivos ocultos e confira se
+   `public_html/.htaccess` e `app/.env` chegaram.
+
+O `diagnostico.php` identifica as três.
+
 **Página em branco ou erro 500**
 Quase sempre é permissão de escrita. Confira `app/storage/` e
 `app/bootstrap/cache/` como na seção 5.

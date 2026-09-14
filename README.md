@@ -38,7 +38,9 @@ Depois da instalação, `/manutencao` substitui o terminal: migrar o banco, limp
 e reconstruir caches, processar a fila. Lista fechada de comandos, nenhum deles
 digitável.
 
-Passo a passo completo em [DEPLOY.md](DEPLOY.md).
+Se algo der errado no envio, `deploy/diagnostico.php` é um arquivo avulso que
+você copia para `public_html`: ele diz onde os arquivos estão, quem consegue
+lê-los e o que falta. Passo a passo completo em [DEPLOY.md](DEPLOY.md).
 
 ## Stack
 

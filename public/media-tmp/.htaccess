@@ -13,9 +13,14 @@ Options -Indexes
 # Allowlist de extensões de mídia; tudo o mais é negado.
 <FilesMatch "^.*\.(jpg|jpeg|png|webp|gif|mp4|mov|m4v)$">
     Require all granted
+</FilesMatch>
+
+# Sem a guarda de módulo, um servidor sem mod_headers derruba o diretório
+# inteiro com erro 500.
+<IfModule mod_headers.c>
     Header set X-Robots-Tag "noindex, nofollow, noarchive"
     Header set Cache-Control "private, max-age=600"
-</FilesMatch>
+</IfModule>
 
 <FilesMatch "^(?!.*\.(jpg|jpeg|png|webp|gif|mp4|mov|m4v)$).*$">
     Require all denied
