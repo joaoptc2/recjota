@@ -11,6 +11,9 @@ if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php'))
 }
 
 // Register the Composer autoloader...
+// Rede de segurança da APP_KEY para deploy sem SSH (ver bootstrap/ensure-app-key.php).
+require __DIR__.'/../bootstrap/ensure-app-key.php';
+
 require __DIR__.'/../vendor/autoload.php';
 
 // Bootstrap Laravel and handle the request...

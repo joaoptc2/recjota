@@ -1,0 +1,43 @@
+name: Pacote de instalação
+
+# Monta o .zip pronto para enviar por FTP/Gerenciador de Arquivos, para quem
+# não quer (ou não pode) rodar Composer e Node na própria máquina.
+#
+# Onde baixar: aba Actions › esta execução › seção Artifacts.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pacote:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preparar PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, curl, mbstring, openssl, gd, zip, fileinfo, intl
+          coverage: none
+
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Montar o pacote
+        run: bash deploy/build.sh
+
+      - name: Publicar como artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: recjota-instalacao
+          path: dist/*.zip
+          retention-days: 30

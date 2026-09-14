@@ -24,6 +24,9 @@ if (file_exists($maintenance = __DIR__.'/../app/storage/framework/maintenance.ph
     require $maintenance;
 }
 
+// Rede de segurança da APP_KEY para deploy sem SSH.
+require __DIR__.'/../app/bootstrap/ensure-app-key.php';
+
 require __DIR__.'/../app/vendor/autoload.php';
 
 /** @var Application $app */

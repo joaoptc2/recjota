@@ -70,10 +70,10 @@ class DemoSeeder extends Seeder
                 'timezone' => config('agency.default_timezone'),
                 'locale' => 'pt_BR',
                 'is_active' => true,
-                'email_verified_at' => now(),
             ],
         );
 
+        $user->forceFill(['email_verified_at' => now()])->save();
         $user->syncRoles([$role->value]);
 
         return $user;

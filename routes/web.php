@@ -10,6 +10,8 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\Install\InstallController;
+use App\Http\Controllers\MaintenanceConsoleController;
 use App\Http\Controllers\Portal\DashboardController as PortalDashboard;
 use App\Http\Controllers\Portal\PostController as PortalPostController;
 use Illuminate\Support\Facades\Route;
@@ -20,6 +22,38 @@ use Illuminate\Support\Facades\Route;
 |------------------------------------------------------------------------------
 */
 Route::get('/health', HealthController::class)->name('health');
+
+/*
+|------------------------------------------------------------------------------
+| Instalador web — hospedagem compartilhada sem SSH
+|------------------------------------------------------------------------------
+| Existe apenas enquanto o sistema não está instalado. Depois do primeiro
+| usuário criado, estas rotas devolvem 404.
+*/
+Route::middleware('installer')->prefix('instalar')->name('install.')->group(function (): void {
+    Route::get('/', [InstallController::class, 'requirements'])->name('requirements');
+
+    Route::get('/ambiente', [InstallController::class, 'environmentForm'])->name('environment');
+    Route::post('/ambiente', [InstallController::class, 'environmentStore'])->name('environment.store');
+
+    Route::get('/banco', [InstallController::class, 'databaseForm'])->name('database');
+    Route::post('/banco', [InstallController::class, 'databaseRun'])->name('database.run');
+
+    Route::get('/administrador', [InstallController::class, 'administratorForm'])->name('administrator');
+    Route::post('/administrador', [InstallController::class, 'administratorStore'])->name('administrator.store');
+});
+
+/*
+|------------------------------------------------------------------------------
+| Console de manutenção — o terminal que a hospedagem não oferece
+|------------------------------------------------------------------------------
+*/
+Route::middleware('maintenance-console')->prefix('manutencao')->name('maintenance.')->group(function (): void {
+    Route::get('/', [MaintenanceConsoleController::class, 'index'])->name('index');
+    Route::post('/{comando}', [MaintenanceConsoleController::class, 'run'])
+        ->middleware('throttle:20,1')
+        ->name('run');
+});
 
 /*
 |------------------------------------------------------------------------------
