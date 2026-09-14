@@ -8,6 +8,7 @@ use App\Models\Client;
 use App\Models\Post;
 use App\Models\Scopes\ClientScope;
 use App\Support\Icons;
+use App\Support\Installation;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Route;
@@ -22,6 +23,33 @@ class AppServiceProvider extends ServiceProvider
     {
         // Um único contexto de tenant por requisição/processo.
         $this->app->scoped(TenantContext::class, fn () => new TenantContext);
+
+        $this->useFileDriversBeforeInstall();
+    }
+
+    /**
+     * Antes da instalação não existe banco — e sessão, cache e fila apontam
+     * para o driver `database`. O instalador web precisa de sessão (CSRF),
+     * então em modo de instalação tudo cai para arquivo.
+     *
+     * A checagem sai de cena assim que o lock existe: em produção instalada
+     * isto é um único file_exists() por requisição.
+     */
+    private function useFileDriversBeforeInstall(): void
+    {
+        if (Installation::isInstalled() || $this->app->runningUnitTests()) {
+            return;
+        }
+
+        if (! Installation::isAvailable()) {
+            return;
+        }
+
+        config([
+            'session.driver' => 'file',
+            'cache.default' => 'file',
+            'queue.default' => 'sync',
+        ]);
     }
 
     public function boot(): void

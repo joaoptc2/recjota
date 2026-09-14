@@ -1,0 +1,10 @@
+{
+    "preset": "laravel",
+    "exclude": [
+        "bootstrap/cache"
+    ],
+    "notPath": [
+        "deploy/diagnostico.php",
+        "bootstrap/ensure-app-key.php"
+    ]
+}

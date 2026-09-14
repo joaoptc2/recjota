@@ -1,0 +1,20 @@
+# Rede de proteção, não configuração normal.
+#
+# Este arquivo fica na RAIZ do projeto, que no layout correto está FORA do
+# document root e portanto nunca é lido por servidor nenhum (R9 / Seção 11.1).
+#
+# Ele existe para o caso de alguém descompactar o projeto dentro de public_html
+# por engano: aí este .htaccess passa a valer e nega o acesso a tudo, evitando
+# que .env, config/, database/, storage/ e vendor/ fiquem expostos na internet.
+#
+# Se você está vendo este arquivo ter efeito, a instalação está no lugar
+# errado. Veja DEPLOY.md, seção 4.
+
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>
