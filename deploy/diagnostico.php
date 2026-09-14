@@ -137,6 +137,83 @@ foreach ($extensões as $ext) {
     $php[] = $linha('Extensão '.$ext, extension_loaded($ext), extension_loaded($ext) ? 'Carregada' : 'AUSENTE', 'hPanel › Avançado › Configuração PHP › Extensões PHP');
 }
 
+// ------------------------------------------------------- onde está o envio
+
+/**
+ * Quando os arquivos não estão onde deveriam, saber ONDE eles foram parar vale
+ * mais do que saber que faltam. Varredura limitada em profundidade e em número
+ * de pastas, para não travar numa conta grande.
+ */
+$procurar = static function (array $raizes, int $profundidadeMax = 4, int $orcamento = 4000): array {
+    $achados = [];
+    $vistos = 0;
+    $ignorar = ['vendor', 'node_modules', '.git', '.cache', '.trash', 'cache', 'logs', '.wp-cli'];
+
+    foreach ($raizes as $raiz) {
+        if (! is_dir($raiz) || ! is_readable($raiz)) {
+            continue;
+        }
+
+        $fila = [[$raiz, 0]];
+
+        while ($fila !== [] && $vistos < $orcamento) {
+            [$dir, $nivel] = array_shift($fila);
+            $vistos++;
+
+            // Marcadores que identificam o pacote sem ambiguidade.
+            if (is_file($dir.'/artisan') && is_dir($dir.'/bootstrap')) {
+                $achados['aplicação (pasta app)'] ??= $dir;
+            }
+            if (is_file($dir.'/vendor/autoload.php')) {
+                $achados['bibliotecas (vendor)'] ??= $dir.'/vendor';
+            }
+            if (is_file($dir.'/index.php') && is_dir($dir.'/build')) {
+                $achados['document root do pacote (public_html)'] ??= $dir;
+            }
+            if (is_file($dir.'/.env') && is_file($dir.'/artisan')) {
+                $achados['.env'] ??= $dir.'/.env';
+            }
+
+            foreach ((array) @glob($dir.'/*.zip') as $zip) {
+                $achados['pacote .zip ainda compactado'] ??= $zip;
+            }
+
+            if ($nivel >= $profundidadeMax) {
+                continue;
+            }
+
+            foreach ((array) @scandir($dir) as $filho) {
+                if ($filho === '.' || $filho === '..' || in_array($filho, $ignorar, true)) {
+                    continue;
+                }
+
+                $caminho = $dir.'/'.$filho;
+
+                if (is_dir($caminho) && ! is_link($caminho) && is_readable($caminho)) {
+                    $fila[] = [$caminho, $nivel + 1];
+                }
+            }
+        }
+    }
+
+    return $achados;
+};
+
+$raizDominio = dirname($aqui);              // .../domains/seudominio.com.br
+$pastaDominios = dirname($raizDominio);     // .../domains
+$casa = dirname($pastaDominios);            // /home/uXXXXXXXX
+
+$faltaTudo = ! is_file($indexAqui) && ! is_dir($app);
+$achados = $faltaTudo ? $procurar([$raizDominio, $casa]) : [];
+
+// Conteúdo da raiz do domínio: barato e quase sempre esclarecedor.
+$conteudoRaiz = [];
+foreach ((array) @scandir($raizDominio) as $i) {
+    if ($i !== '.' && $i !== '..') {
+        $conteudoRaiz[] = [$i, is_dir($raizDominio.'/'.$i), $perm($raizDominio.'/'.$i)];
+    }
+}
+
 // ------------------------------------------------------------------ último erro
 
 $log = $app.'/storage/logs/laravel.log';
@@ -200,6 +277,54 @@ foreach ([...$estrutura, ...$permissoes, ...$php] as $c) {
             public_html. Isso indica que o pacote foi descompactado um nível fundo demais: o
             <code>index.php</code> precisa ficar solto em public_html, e a pasta <code>app</code> precisa
             ficar um nível ACIMA, fora dele.
+        </div>
+    <?php } ?>
+
+<?php if ($faltaTudo) { ?>
+        <div class="card">
+            <h2>Onde estão os arquivos do pacote</h2>
+            <?php if ($achados === []) { ?>
+                <p class="detail" style="margin:0 0 10px">
+                    Procurei em <code><?= htmlspecialchars($raizDominio) ?></code> e em
+                    <code><?= htmlspecialchars($casa) ?></code> e não encontrei nenhum vestígio do
+                    pacote — nem <code>artisan</code>, nem <code>vendor</code>, nem <code>.zip</code>.
+                </p>
+                <p class="detail" style="margin:0">
+                    Ou o envio não chegou ao servidor, ou foi para uma conta/domínio diferente deste.
+                </p>
+            <?php } else { ?>
+                <p class="detail" style="margin:0 0 10px">Encontrei estes pedaços do pacote:</p>
+                <ul>
+                    <?php foreach ($achados as $oQue => $onde) { ?>
+                        <li class="bad">
+                            <span class="mark">→</span>
+                            <span>
+                                <span class="item"><?= htmlspecialchars($oQue) ?></span>
+                                <div class="detail"><code><?= htmlspecialchars($onde) ?></code></div>
+                            </span>
+                        </li>
+                    <?php } ?>
+                </ul>
+                <p class="fix" style="margin-top:12px">
+                    Mova a pasta da aplicação para <code><?= htmlspecialchars($app) ?></code> e o conteúdo
+                    do document root para <code><?= htmlspecialchars($aqui) ?></code>.
+                </p>
+            <?php } ?>
+        </div>
+
+        <div class="card">
+            <h2>Conteúdo de <?= htmlspecialchars($raizDominio) ?></h2>
+            <pre><?php
+                foreach ($conteudoRaiz as [$nome, $ehPasta, $p]) {
+                    printf("%-30s %s  %s\n", htmlspecialchars($nome), $ehPasta ? '[pasta]  ' : '[arquivo]', $p);
+                }
+    if ($conteudoRaiz === []) {
+        echo '(vazio ou sem permissão de leitura)';
+    }
+    ?></pre>
+            <p class="detail" style="margin:0">
+                É aqui que a pasta <code>app</code> precisa aparecer, ao lado de <code>public_html</code>.
+            </p>
         </div>
     <?php } ?>
 
