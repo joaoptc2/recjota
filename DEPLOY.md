@@ -13,10 +13,16 @@ cron.** Leva uns 20 minutos na primeira vez.
 O pacote já vem com as bibliotecas instaladas (`vendor/`), o CSS e o JavaScript
 compilados (`build/`) e uma chave de criptografia gerada. Cerca de 20 MB.
 
-**Opção A — GitHub Actions (nada instalado na sua máquina)**
+> **Não use o botão "Code › Download ZIP" da página do repositório.** Ele
+> entrega o código-fonte sem as bibliotecas (`vendor/`), e o sistema não roda
+> assim. O pacote de instalação é outro arquivo.
 
-Aba **Actions** › workflow **Pacote de instalação** › **Run workflow**. Ao
-terminar, baixe o `.zip` na seção **Artifacts**.
+**Opção A — baixar o pacote pronto (nada instalado na sua máquina)**
+
+Página **Releases** do repositório › release **Pacote de instalação (mais
+recente)** › seção **Assets** › baixe o `recjota-AAAAMMDD-HHMM.zip`.
+
+Ele é remontado automaticamente a cada alteração no código.
 
 **Opção B — na sua máquina** (precisa de PHP, Composer e Node — só aí, nunca no
 servidor)

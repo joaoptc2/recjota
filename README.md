@@ -25,9 +25,11 @@ ciclo `criar → revisar → aprovar → publicar`.
 O servidor **não roda Composer, não roda Node e não precisa de SSH**. O deploy é
 cópia de arquivos mais quatro telas no navegador:
 
-1. `./deploy/build.sh` (ou o workflow **Pacote de instalação** no GitHub Actions)
-   gera um `.zip` de ~20 MB com as dependências instaladas, os assets compilados
-   e uma `APP_KEY` já gerada.
+1. Você baixa o **pacote de instalação** na página de Releases — um `.zip` de
+   ~20 MB com as dependências instaladas, os assets compilados e uma `APP_KEY`
+   já gerada, remontado a cada alteração no código. (`./deploy/build.sh` gera o
+   mesmo pacote localmente.) **O botão "Code › Download ZIP" não serve**: ele
+   entrega o código-fonte sem as bibliotecas.
 2. Você envia as duas pastas do pacote por FTP ou pelo Gerenciador de Arquivos.
 3. Abre o site: o **instalador web** confere o ambiente, testa a conexão com o
    banco, cria as tabelas e o primeiro usuário — e depois disso desaparece.

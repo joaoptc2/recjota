@@ -34,7 +34,7 @@ echo "==> Copiando a aplicação"
 # Só o que o Laravel precisa em runtime. Ferramenta de desenvolvimento
 # (node_modules, testes, .git, dist) fica de fora.
 for item in app bootstrap config database public resources routes storage \
-            artisan composer.json composer.lock cron.php cron.sh; do
+            artisan composer.json composer.lock cron.php cron.sh .htaccess; do
     cp -R "$ROOT/$item" "$STAGE/app/"
 done
 

@@ -79,6 +79,22 @@ $estrutura = [
     ),
 ];
 
+/*
+ * Erro clássico: baixar o repositório em "Code › Download ZIP" e descompactar
+ * aqui. Vem o código-fonte inteiro, sem vendor/ — e ainda por cima dentro do
+ * document root, com config/, database/ e storage/ expostos na web.
+ */
+$marcasDeFonte = array_filter([
+    'phpunit.xml' => is_file($aqui.'/phpunit.xml'),
+    'tests/' => is_dir($aqui.'/tests'),
+    'package.json' => is_file($aqui.'/package.json'),
+    'vite.config.js' => is_file($aqui.'/vite.config.js'),
+    'composer.json' => is_file($aqui.'/composer.json'),
+    'artisan' => is_file($aqui.'/artisan'),
+]);
+
+$enviouOFonte = count($marcasDeFonte) >= 3 && ! is_dir($aqui.'/vendor');
+
 // Pastas que vieram no lugar errado são a pista mais útil de todas.
 $suspeitas = [];
 foreach (['public_html', 'app', 'recjota'] as $nome) {
@@ -269,6 +285,20 @@ foreach ([...$estrutura, ...$permissoes, ...$php] as $c) {
         <div class="alert ok">Estrutura e permissões corretas. Acesse a raiz do site: o instalador deve aparecer.</div>
     <?php } else { ?>
         <div class="alert bad">Encontrei problemas. Os itens marcados com ✕ abaixo dizem o que fazer.</div>
+    <?php } ?>
+
+    <?php if ($enviouOFonte) { ?>
+        <div class="alert bad">
+            <strong>Isto aqui é o código-fonte, não o pacote de instalação.</strong>
+            Encontrei <?= htmlspecialchars(implode(', ', array_keys($marcasDeFonte))) ?> e nenhuma pasta
+            <code>vendor</code> — é o que vem quando se usa "Code › Download ZIP" no GitHub.
+            O sistema não roda assim: faltam as bibliotecas, que só o pacote de instalação traz prontas.
+            <br><br>
+            Pior: com o projeto dentro do document root, <code>config/</code>, <code>database/</code> e
+            <code>storage/</code> ficam acessíveis pela internet. <strong>Apague tudo o que está em
+            public_html</strong> e envie o pacote de instalação no lugar — ele tem duas pastas, e só uma
+            delas vai aqui dentro.
+        </div>
     <?php } ?>
 
     <?php if ($suspeitas !== []) { ?>
