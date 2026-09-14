@@ -6,8 +6,10 @@ name: Pacote de instalação
 # Onde baixar: aba Actions › esta execução › seção Artifacts.
 
 on:
+  # Todo push já deixa um pacote pronto para baixar — sem precisar de Composer
+  # nem de Node na máquina de quem vai publicar.
   push:
-    tags: ['v*']
+    branches: ['**']
   workflow_dispatch:
 
 permissions:
