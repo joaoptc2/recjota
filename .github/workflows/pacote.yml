@@ -27,7 +27,7 @@ jobs:
       - name: Preparar PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.2'
           extensions: pdo_mysql, curl, mbstring, openssl, gd, zip, fileinfo, intl
           coverage: none
 
@@ -35,6 +35,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+
+      # Se o lock exigir um PHP acima do piso, isto falha aqui e não na
+      # hospedagem do cliente.
+      - name: Conferir composer.json e composer.lock
+        run: |
+          composer validate --no-check-publish
+          composer check-platform-reqs --no-dev
 
       - name: Montar o pacote
         run: bash deploy/build.sh
