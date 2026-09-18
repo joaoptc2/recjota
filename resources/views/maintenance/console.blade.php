@@ -34,7 +34,9 @@
             <p class="hint" style="margin:0">{{ $comando['descricao'] }}</p>
             <form method="POST" action="{{ route('maintenance.run', $chave) }}">
                 @csrf
-                @if (! auth()->check())
+                {{-- Vale para qualquer visita feita com token, autenticada ou
+                     não: sem repassá-lo, o POST volta 404. --}}
+                @if (request()->filled('token'))
                     <input type="hidden" name="token" value="{{ request('token') }}">
                 @endif
                 <button type="submit" class="small" style="margin-top:12px">Executar</button>

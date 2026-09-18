@@ -26,7 +26,9 @@ return (static function (string $basePath): void {
 
     $contents = (string) file_get_contents($envPath);
 
-    if (preg_match('/^APP_KEY=(.+)$/m', $contents, $matches) === 1 && trim($matches[1], " \t\"'") !== '') {
+    // O \r cobre .env salvo com quebra de linha do Windows: sem ele um
+    // "APP_KEY=\r" passaria por chave definida e a aplicação morreria no ar.
+    if (preg_match('/^APP_KEY=(.*)$/m', $contents, $matches) === 1 && trim($matches[1], " \t\r\n\"'") !== '') {
         return;
     }
 

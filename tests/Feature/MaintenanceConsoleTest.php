@@ -98,6 +98,35 @@ class MaintenanceConsoleTest extends TestCase
         $this->assertNotNull(SystemHeartbeat::firstWhere('name', 'scheduler'));
     }
 
+    public function test_porta_de_emergencia_mantem_o_token_depois_de_rodar_um_comando(): void
+    {
+        $token = str_repeat('a', 64);
+        config(['agency.maintenance_token' => $token]);
+
+        // Sem repassar o token no redirect, a tela de resultado devolveria 404
+        // justo para quem não tem sessão autenticada.
+        $this->post(route('maintenance.run', 'healthcheck'), ['token' => $token])
+            ->assertRedirect(route('maintenance.index', ['token' => $token]));
+    }
+
+    public function test_owner_autenticado_nao_carrega_token_na_url(): void
+    {
+        $this->actingAsUser($this->userWithRole(RoleName::Owner))
+            ->post(route('maintenance.run', 'healthcheck'))
+            ->assertRedirect(route('maintenance.index'));
+    }
+
+    public function test_formulario_repassa_o_token_para_quem_entrou_por_ele(): void
+    {
+        $token = str_repeat('a', 64);
+        config(['agency.maintenance_token' => $token]);
+
+        $this->get(route('maintenance.index', ['token' => $token]))
+            ->assertOk()
+            ->assertSee('name="token"', escape: false)
+            ->assertSee($token, escape: false);
+    }
+
     public function test_console_avisa_quando_o_agendador_parou(): void
     {
         SystemHeartbeat::create(['name' => 'scheduler', 'last_run_at' => now()->subDay()]);

@@ -61,32 +61,65 @@ a Hostinger mostra o nome curto no formulário e usa o longo na conexão.
 
 ---
 
-## 4. Enviar os arquivos
+## 4. Descobrir qual pasta o seu domínio publica
 
-Descompacte o `.zip` na sua máquina. Dentro dele há duas pastas — elas vão para
-lugares diferentes:
+hPanel › **Sites** › **Gerenciador de Arquivos**. A pasta que abre por padrão
+para o seu domínio é o **document root** — é ali que o site vive.
+
+Na Hostinger ela quase sempre se chama `public_html`, dentro de
+`domains/seudominio.com.br/`. Mas o nome varia conforme o plano e o tipo de
+domínio, e **o sistema não depende desse nome**. Se a pasta não existir, crie-a
+(use `public_html`) e aponte o domínio para ela em hPanel › Sites.
+
+Anote o caminho completo. Nos exemplos abaixo ele aparece como
+`/home/uXXXXXXXX/domains/seudominio.com.br/public_html`.
+
+## 5. Enviar os arquivos
+
+Descompacte o `.zip` na sua máquina. Dentro dele há **duas pastas, e elas vão
+para lugares diferentes** — cada uma traz um `LEIA-ME.txt` repetindo isto:
+
+| Pasta no pacote | Para onde vai |
+|---|---|
+| `app/` | **ao lado** do document root, nunca dentro |
+| **conteúdo** de `document-root/` | **dentro** do document root |
+
+Note que é o *conteúdo* de `document-root/`, não a pasta. Depois do envio, o
+`index.php` precisa estar solto no document root.
 
 ```
 /home/uXXXXXXXX/domains/seudominio.com.br/
-├── app/           ← a pasta "app" do pacote (FORA do document root)
-└── public_html/   ← o conteúdo da pasta "public_html" do pacote
+├── app/               ← a pasta "app" do pacote, inteira
+└── public_html/       ← o CONTEÚDO de "document-root"
+    ├── index.php
+    ├── .htaccess
+    ├── .user.ini
+    ├── build/
+    └── media-tmp/
 ```
 
 Envie pelo **Gerenciador de Arquivos** do hPanel (mais simples: dá para subir o
 `.zip` e descompactar lá dentro) ou por qualquer cliente **FTP**.
 
-Se já existir um `index.html` ou `default.php` em `public_html`, apague — ele
-tem prioridade sobre o `index.php` do sistema.
+Dois detalhes que costumam morder:
+
+- **Arquivos ocultos.** `.htaccess`, `.user.ini` e `.env` começam com ponto e
+  muitos clientes de FTP não os enviam. Ligue a opção de mostrar arquivos
+  ocultos antes de começar.
+- **`index.html` antigo.** Se já existir um `index.html` ou `default.php` no
+  document root, apague: ele tem prioridade sobre o `index.php` do sistema.
 
 ### Por que duas pastas
 
-`public_html` é o document root e fica exposto na internet. O código, o `.env`,
-o `storage/` e o `vendor/` ficam em `app/`, um nível acima, fora do alcance de
-qualquer visitante (R9).
+O document root fica exposto na internet. O código, o `.env`, o `storage/` e o
+`vendor/` ficam em `app/`, um nível acima, fora do alcance de qualquer visitante
+(R9). Se a aplicação não estiver exatamente um nível acima, o `index.php`
+procura nas pastas vizinhas antes de desistir — e, ao desistir, mostra uma
+página explicando, em vez de um erro fatal.
 
 ---
 
-## 5. Abrir o site
+## 6. Abrir o site
 
 Acesse `https://seudominio.com.br`. O sistema detecta que ainda não foi
 instalado e leva direto ao instalador, em quatro telas:
@@ -114,7 +147,7 @@ Gerenciador de Arquivos › botão direito na pasta › **Permissões** › `755
 
 ---
 
-## 6. Cadastrar o cron — passo obrigatório
+## 7. Cadastrar o cron — passo obrigatório
 
 **Sem o cron nada é publicado, nenhum e-mail sai e nenhum token é renovado.**
 
@@ -153,7 +186,7 @@ no topo.
 
 ---
 
-## 7. Console de manutenção — o terminal que a hospedagem não tem
+## 8. Console de manutenção — o terminal que a hospedagem não tem
 
 `https://seudominio.com.br/manutencao`, acessível para quem tem papel
 **proprietário**.
@@ -183,10 +216,10 @@ console só abre para o proprietário autenticado.
 
 ---
 
-## 8. Atualizar o sistema depois
+## 9. Atualizar o sistema depois
 
 1. Gere um pacote novo (seção 1).
-2. Envie por FTP **apenas a pasta `app/`** e a pasta `public_html/build/`,
+2. Envie por FTP **apenas a pasta `app/`** e a pasta `build/` do document root,
    sobrescrevendo. **Não sobrescreva o `.env`** — ele tem as suas credenciais e
    a sua `APP_KEY`.
 3. Abra `/manutencao` e clique, nesta ordem: **Atualizar o banco** → **Limpar os
@@ -194,27 +227,33 @@ console só abre para o proprietário autenticado.
 
 ---
 
-## 9. Problemas comuns
+## 10. Problemas comuns
 
 ### Ferramenta de diagnóstico
 
 Quando o site não abre e não há SSH para investigar, o pacote traz
-`diagnostico.php` na raiz. Copie o arquivo para dentro de `public_html/` e
-acesse `https://seudominio.com.br/diagnostico.php`: ele diz onde os arquivos
-realmente estão, quem consegue lê-los e o que falta, item por item.
+`diagnostico.php` na raiz. Copie o arquivo para dentro do document root e
+acesse `https://seudominio.com.br/diagnostico.php`.
 
-Ele não lê o conteúdo do `.env` nem imprime senhas. Ainda assim, **apague o
-arquivo assim que terminar** — ele revela a estrutura de pastas do servidor.
+Na primeira visita ele gera uma chave e a grava em `diagnostico.chave.txt`, ao
+lado dele. Abra esse arquivo pelo Gerenciador de Arquivos e acesse
+`?chave=<o-que-estiver-lá>`. Essa volta existe porque o relatório mostra
+caminhos do servidor e trechos do log, e nada disso pode ficar aberto na
+internet — quem não consegue abrir um arquivo na pasta não vê o relatório.
+
+Ele então diz onde os arquivos realmente estão, quem consegue lê-los e o que
+falta, item por item. **Apague `diagnostico.php` e `diagnostico.chave.txt` ao
+terminar.**
 
 ### "403 Forbidden — Access to this resource on the server is denied!"
 
 Esta mensagem é do servidor da Hostinger, não do sistema. São três causas, em
 ordem de frequência:
 
-1. **O `index.php` não está solto em `public_html`.** Ao descompactar, é comum
-   sobrar um nível: `public_html/public_html/index.php` ou
-   `public_html/recjota/...`. O `index.php` precisa estar diretamente em
-   `public_html`, e a pasta `app` um nível ACIMA, fora dele.
+1. **O `index.php` não está solto no document root.** Ao descompactar, é comum
+   sobrar um nível: `public_html/document-root/index.php` ou
+   `public_html/recjota/...`. O `index.php` precisa estar diretamente no
+   document root, e a pasta `app` um nível ACIMA, fora dele.
 2. **Permissão errada.** Pastas precisam ser `755` e arquivos `644`. Com `700`
    na pasta ou `600` no arquivo, o servidor não consegue ler e devolve 403.
    Gerenciador de Arquivos › botão direito › Permissões.
@@ -248,7 +287,7 @@ Alguns planos levam até 20 minutos para a primeira execução. Se depois disso 
 
 ---
 
-## 10. Backup
+## 11. Backup
 
 A hospedagem compartilhada não garante backup próprio. Até a rotina automática
 da Fase 7, faça manualmente:

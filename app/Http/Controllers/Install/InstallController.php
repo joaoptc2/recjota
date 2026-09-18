@@ -16,12 +16,12 @@ use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use PDO;
 use PDOException;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -88,38 +88,47 @@ class InstallController extends Controller
                 ->withErrors(['db_database' => $erro]);
         }
 
-        EnvFile::default()->set([
-            'APP_NAME' => $data['app_name'],
-            'APP_ENV' => 'production',
-            'APP_DEBUG' => false,
-            'APP_URL' => rtrim($data['app_url'], '/'),
-            // O banco é SEMPRE UTC (R2); o fuso abaixo é só de exibição.
-            'APP_TIMEZONE' => 'UTC',
-            'AGENCY_NAME' => $data['app_name'],
-            'AGENCY_DEFAULT_TIMEZONE' => $data['timezone'],
+        try {
+            EnvFile::default()->set([
+                'APP_NAME' => $data['app_name'],
+                'APP_ENV' => 'production',
+                'APP_DEBUG' => false,
+                'APP_URL' => rtrim($data['app_url'], '/'),
+                // O banco é SEMPRE UTC (R2); o fuso abaixo é só de exibição.
+                'APP_TIMEZONE' => 'UTC',
+                'AGENCY_NAME' => $data['app_name'],
+                'AGENCY_DEFAULT_TIMEZONE' => $data['timezone'],
 
-            'DB_CONNECTION' => 'mysql',
-            'DB_HOST' => $data['db_host'],
-            'DB_PORT' => (string) $data['db_port'],
-            'DB_DATABASE' => $data['db_database'],
-            'DB_USERNAME' => $data['db_username'],
-            'DB_PASSWORD' => $data['db_password'] ?? '',
+                'DB_CONNECTION' => 'mysql',
+                'DB_HOST' => $data['db_host'],
+                'DB_PORT' => (string) $data['db_port'],
+                'DB_DATABASE' => $data['db_database'],
+                'DB_USERNAME' => $data['db_username'],
+                'DB_PASSWORD' => $data['db_password'] ?? '',
 
-            'SESSION_DRIVER' => 'database',
-            'CACHE_STORE' => 'database',
-            'QUEUE_CONNECTION' => 'database',
+                'SESSION_DRIVER' => 'database',
+                'CACHE_STORE' => 'database',
+                'QUEUE_CONNECTION' => 'database',
 
-            'MAIL_MAILER' => filled($data['mail_host'] ?? null) ? 'smtp' : 'log',
-            'MAIL_HOST' => $data['mail_host'] ?? '',
-            'MAIL_PORT' => (string) ($data['mail_port'] ?? 465),
-            'MAIL_SCHEME' => ((int) ($data['mail_port'] ?? 465)) === 465 ? 'smtps' : 'smtp',
-            'MAIL_USERNAME' => $data['mail_username'] ?? '',
-            'MAIL_PASSWORD' => $data['mail_password'] ?? '',
-            'MAIL_FROM_ADDRESS' => $data['mail_from_address'] ?? '',
-            'MAIL_FROM_NAME' => $data['app_name'],
+                'MAIL_MAILER' => filled($data['mail_host'] ?? null) ? 'smtp' : 'log',
+                'MAIL_HOST' => $data['mail_host'] ?? '',
+                'MAIL_PORT' => (string) ($data['mail_port'] ?? 465),
+                'MAIL_SCHEME' => ((int) ($data['mail_port'] ?? 465)) === 465 ? 'smtps' : 'smtp',
+                'MAIL_USERNAME' => $data['mail_username'] ?? '',
+                'MAIL_PASSWORD' => $data['mail_password'] ?? '',
+                'MAIL_FROM_ADDRESS' => $data['mail_from_address'] ?? '',
+                'MAIL_FROM_NAME' => $data['app_name'],
 
-            'MEDIA_BRIDGE_URL' => rtrim($data['app_url'], '/').'/media-tmp',
-        ]);
+                // Caminho e URL têm de apontar para a MESMA pasta. O document root
+                // real vem do servidor: no layout de produção ele não é public_path().
+                'MEDIA_BRIDGE_PATH' => $this->documentRoot().'/media-tmp',
+                'MEDIA_BRIDGE_URL' => rtrim($data['app_url'], '/').'/media-tmp',
+            ]);
+        } catch (RuntimeException $e) {
+            // Mensagem acionável no formulário, nunca um 500 genérico (Seção 14).
+            return back()->withInput($request->except('db_password', 'mail_password'))
+                ->withErrors(['app_name' => $e->getMessage()]);
+        }
 
         return redirect()->route('install.database')
             ->with('status', 'Conexão com o banco confirmada e configuração gravada.');
@@ -148,9 +157,13 @@ class InstallController extends Controller
             Artisan::call('migrate', ['--force' => true]);
             Artisan::call('db:seed', ['--class' => RolesAndPermissionsSeeder::class, '--force' => true]);
 
-            if ($request->boolean('demo')) {
-                Artisan::call('db:seed', ['--class' => DemoSeeder::class, '--force' => true]);
-            }
+            /*
+             * O DemoSeeder NÃO roda aqui. Ele cria usuários, e usuários fecham
+             * o portão de Installation::isAvailable() — o passo seguinte
+             * devolveria 404 e o instalador morreria sem criar o proprietário.
+             * A escolha fica guardada e é aplicada depois do lock.
+             */
+            $request->session()->put('install.demo', $request->boolean('demo'));
         } catch (Throwable $e) {
             report($e);
 
@@ -203,14 +216,25 @@ class InstallController extends Controller
             return $user;
         });
 
+        if ($request->session()->pull('install.demo', false)) {
+            Artisan::call('db:seed', ['--class' => DemoSeeder::class, '--force' => true]);
+        }
+
         // A partir daqui o instalador deixa de existir.
         Installation::markInstalled();
 
-        Auth::login($user);
-        $request->session()->regenerate();
-
-        return redirect()->route('painel.dashboard')
-            ->with('status', 'Instalação concluída. Cadastre o cron em seguida — sem ele nada é publicado.');
+        /*
+         * Sem Auth::login() de propósito. Até este ponto a sessão vive em
+         * arquivo, porque o driver `database` não existia antes das migrations;
+         * o lock recém-escrito devolve o driver para o banco, e a sessão atual
+         * não sobrevive ao redirect. Mandar para a tela de entrada é o caminho
+         * honesto — e o usuário acabou de escolher a senha.
+         */
+        return redirect()->route('login')->with(
+            'status',
+            'Instalação concluída. Entre com o e-mail e a senha que você acabou de criar — '
+            .'e cadastre o cron em seguida, porque sem ele nada é publicado.',
+        );
     }
 
     /** @param array<string, mixed> $data */
@@ -233,6 +257,17 @@ class InstallController extends Controller
                 default => 'Falha ao conectar no banco: '.$e->getMessage(),
             };
         }
+    }
+
+    /**
+     * Pasta que o servidor web realmente serve. No layout de produção ela NÃO é
+     * public_path() — o projeto mora um nível acima do document root (R9).
+     */
+    private function documentRoot(): string
+    {
+        $raiz = (string) ($_SERVER['DOCUMENT_ROOT'] ?? '');
+
+        return $raiz !== '' && is_dir($raiz) ? rtrim($raiz, '/') : rtrim(public_path(), '/');
     }
 
     private function currentConnectionWorks(): bool

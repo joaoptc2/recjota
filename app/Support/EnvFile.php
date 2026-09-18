@@ -45,14 +45,18 @@ final class EnvFile
             $line = $key.'='.$this->format($value);
             $pattern = '/^'.preg_quote($key, '/').'=.*$/m';
 
+            /*
+             * preg_replace_callback e não preg_replace: senhas com $ ou barra
+             * invertida seriam interpretadas como referência de captura e
+             * gravadas erradas — o instalador validaria a credencial certa e
+             * escreveria outra no arquivo.
+             */
             $contents = preg_match($pattern, $contents) === 1
-                ? preg_replace($pattern, $line, $contents, 1)
-                : rtrim($contents, "\n")."\n".$line."\n";
+                ? (string) preg_replace_callback($pattern, static fn (): string => $line, $contents, 1)
+                : rtrim($contents, "\r\n")."\n".$line."\n";
         }
 
-        $written = file_put_contents($this->path, $contents, LOCK_EX);
-
-        if ($written === false) {
+        if (file_put_contents($this->path, $contents, LOCK_EX) === false) {
             throw new RuntimeException('Não foi possível gravar o arquivo .env.');
         }
     }
@@ -69,7 +73,18 @@ final class EnvFile
             return null;
         }
 
-        return trim(trim($matches[1]), '"');
+        // O \r cobre .env salvo com quebra de linha do Windows.
+        $bruto = trim($matches[1], " \t\r\n");
+
+        if (strlen($bruto) >= 2 && str_starts_with($bruto, "'") && str_ends_with($bruto, "'")) {
+            return substr($bruto, 1, -1);
+        }
+
+        if (strlen($bruto) >= 2 && str_starts_with($bruto, '"') && str_ends_with($bruto, '"')) {
+            return str_replace(['\\"', '\\\\'], ['"', '\\'], substr($bruto, 1, -1));
+        }
+
+        return $bruto;
     }
 
     private function format(string|int|bool|null $value): string
@@ -81,7 +96,7 @@ final class EnvFile
         $value = (string) $value;
 
         // Aspas só quando necessário, para o arquivo continuar legível.
-        return preg_match('/[\s#"\'$]/', $value) === 1
+        return preg_match('/[\s#"\'$\\\\]/', $value) === 1
             ? '"'.str_replace(['\\', '"'], ['\\\\', '\"'], $value).'"'
             : $value;
     }

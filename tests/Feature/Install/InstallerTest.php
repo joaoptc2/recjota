@@ -81,14 +81,16 @@ class InstallerTest extends TestCase
             'email' => 'ana@agencia.test',
             'password' => 'uma-senha-bem-longa',
             'password_confirmation' => 'uma-senha-bem-longa',
-        ])->assertRedirect(route('painel.dashboard'));
+            // O lock devolve a sessão para o driver `database`, e a sessão em
+            // arquivo desta requisição não sobrevive ao redirect. Por isso a
+            // instalação termina na tela de entrada, não no painel.
+        ])->assertRedirect(route('login'));
 
         $owner = User::where('email', 'ana@agencia.test')->firstOrFail();
 
         $this->assertTrue($owner->hasRole(RoleName::Owner->value));
         $this->assertTrue($owner->isAgency());
         $this->assertTrue($owner->seesEveryClient());
-        $this->assertAuthenticatedAs($owner);
 
         $this->assertFileExists(Installation::lockPath());
 
@@ -134,6 +136,32 @@ class InstallerTest extends TestCase
             'db_username' => 'usuario_invalido',
             'db_password' => 'senha_invalida',
         ])->assertSessionHasErrors('db_database');
+    }
+
+    public function test_marcar_dados_demo_nao_mata_o_instalador_no_passo_seguinte(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        // O DemoSeeder cria usuários; se rodasse aqui, o portão fecharia e o
+        // passo do administrador devolveria 404.
+        $this->post(route('install.database.run'), ['demo' => true])
+            ->assertRedirect(route('install.administrator'));
+
+        $this->assertSame(0, User::count(), 'Nenhum usuário pode existir antes do proprietário.');
+
+        $this->get(route('install.administrator'))->assertOk();
+
+        $this->post(route('install.administrator.store'), [
+            'name' => 'Ana Proprietária',
+            'email' => 'ana@agencia.test',
+            'password' => 'uma-senha-bem-longa',
+            'password_confirmation' => 'uma-senha-bem-longa',
+        ])->assertRedirect(route('login'));
+
+        $this->assertDatabaseHas('users', ['email' => 'ana@agencia.test']);
+        // A escolha da demo é aplicada depois do lock, não antes.
+        $this->assertDatabaseHas('clients', ['name' => 'Acme Café']);
+        $this->assertFileExists(Installation::lockPath());
     }
 
     public function test_tela_de_ambiente_valida_o_endereco_do_sistema(): void

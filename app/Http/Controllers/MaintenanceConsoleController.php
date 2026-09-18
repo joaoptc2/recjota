@@ -59,15 +59,28 @@ class MaintenanceConsoleController extends Controller
                 'duracao_ms' => $duracao,
             ]);
 
-            return redirect()->route('maintenance.index')
+            return redirect()->route('maintenance.index', $this->tokenNaUrl($request))
                 ->with('comandoExecutado', $definicao['titulo'])
                 ->with('saida', $saida !== '' ? $saida : 'Concluído em '.$duracao.' ms, sem saída.');
         } catch (Throwable $e) {
             report($e);
 
-            return redirect()->route('maintenance.index')
+            return redirect()->route('maintenance.index', $this->tokenNaUrl($request))
                 ->with('comandoExecutado', $definicao['titulo'])
                 ->with('saida', 'FALHOU: '.$e->getMessage());
         }
+    }
+
+    /**
+     * Quem entrou pela porta de emergência não tem sessão autenticada: sem
+     * devolver o token no redirect, a tela de resultado responderia 404.
+     *
+     * @return array<string, string>
+     */
+    private function tokenNaUrl(Request $request): array
+    {
+        $token = (string) $request->input('token', '');
+
+        return $request->user() === null && $token !== '' ? ['token' => $token] : [];
     }
 }

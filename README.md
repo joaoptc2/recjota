@@ -30,7 +30,11 @@ cópia de arquivos mais quatro telas no navegador:
    já gerada, remontado a cada alteração no código. (`./deploy/build.sh` gera o
    mesmo pacote localmente.) **O botão "Code › Download ZIP" não serve**: ele
    entrega o código-fonte sem as bibliotecas.
-2. Você envia as duas pastas do pacote por FTP ou pelo Gerenciador de Arquivos.
+2. Você envia as duas pastas do pacote por FTP ou pelo Gerenciador de Arquivos:
+   `app/` fica **ao lado** da pasta que o domínio publica e o **conteúdo** de
+   `document-root/` vai **dentro** dela. O nome dessa pasta (`public_html` na
+   Hostinger) não está escrito em lugar nenhum do código — o `index.php`
+   localiza a aplicação sozinho.
 3. Abre o site: o **instalador web** confere o ambiente, testa a conexão com o
    banco, cria as tabelas e o primeiro usuário — e depois disso desaparece.
 4. Cadastra **um** cron job. `cron.php` para o tipo "PHP" do hPanel, `cron.sh`
@@ -41,8 +45,9 @@ e reconstruir caches, processar a fila. Lista fechada de comandos, nenhum deles
 digitável.
 
 Se algo der errado no envio, `deploy/diagnostico.php` é um arquivo avulso que
-você copia para `public_html`: ele diz onde os arquivos estão, quem consegue
-lê-los e o que falta. Passo a passo completo em [DEPLOY.md](DEPLOY.md).
+você copia para a pasta publicada: ele diz onde os arquivos estão, quem
+consegue lê-los e o que falta, atrás de uma chave que só quem tem acesso à
+pasta consegue ler. Passo a passo completo em [DEPLOY.md](DEPLOY.md).
 
 ## Stack
 
@@ -104,6 +109,11 @@ de manutenção só roda comandos de um catálogo fechado
 **O agendador roda em processo.** `routes/console.php` usa `Schedule::call()` em
 vez de `Schedule::command()`, porque `command()` abre processo filho via
 `proc_open` — função que parte das hospedagens compartilhadas desabilita.
+
+**Nenhum caminho de servidor fixo no código.** O front controller do document
+root procura a aplicação nas pastas vizinhas e, se não achar, explica o que
+houve em vez de estourar um erro fatal. Nada depende de a pasta publicada se
+chamar `public_html`.
 
 **Sem symlink de storage.** O disco `local` do Laravel serve os arquivos por
 rota própria, o que dispensa `php artisan storage:link` — impossível de rodar

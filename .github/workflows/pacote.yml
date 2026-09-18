@@ -64,8 +64,11 @@ jobs:
 
           Dentro do pacote há duas pastas, e elas vão para lugares diferentes:
 
-          - `app/` → **fora** do `public_html`, ao lado dele
-          - o conteúdo de `public_html/` → **dentro** do seu `public_html`
+          - `app/` → **ao lado** da pasta que o seu domínio publica, nunca dentro
+          - o **conteúdo** de `document-root/` → **dentro** dessa pasta
+
+          Na Hostinger a pasta publicada costuma se chamar `public_html`, mas o
+          nome não importa: o sistema não depende dele.
 
           O passo a passo está em `LEIA-ME-PRIMEIRO.md`, dentro do pacote.
           TXT

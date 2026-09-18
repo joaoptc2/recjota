@@ -9,24 +9,89 @@ declare(strict_types=1);
 | Para usar quando o site devolve 403, 500 ou página em branco e não há SSH
 | para investigar.
 |
-|   1. Envie ESTE arquivo para dentro de public_html/
+|   1. Envie ESTE arquivo para a pasta que o seu domínio publica
+|      (na Hostinger costuma se chamar public_html, mas o nome não importa:
+|       é a pasta onde fica o index.php do site)
 |   2. Abra https://seudominio.com.br/diagnostico.php
-|   3. APAGUE o arquivo assim que terminar
+|   3. Siga a instrução de chave que aparecer
+|   4. APAGUE este arquivo e o diagnostico.chave.txt ao terminar
 |
-| Não depende do Laravel, não lê o conteúdo do .env e não imprime nenhuma
-| senha: só diz onde os arquivos estão e quem consegue lê-los.
+| Não depende do Laravel e não lê o conteúdo do .env. Mesmo assim o relatório
+| mostra caminhos do servidor e o fim do log de erros, então ele fica atrás de
+| uma chave: quem não consegue abrir um arquivo na pasta não vê nada.
 */
 
 $aqui = __DIR__;
+$arquivoChave = $aqui.'/diagnostico.chave.txt';
+
+// Alternativa para quando a pasta não é gravável: preencha entre as aspas.
+$chaveManual = '';
+
+// ------------------------------------------------------------------ portaria
+
+$chaveEsperada = $chaveManual !== '' ? $chaveManual : (is_file($arquivoChave) ? trim((string) file_get_contents($arquivoChave)) : '');
+$podeGravar = is_writable($aqui);
+
+if ($chaveEsperada === '' && $podeGravar) {
+    try {
+        $chaveEsperada = bin2hex(random_bytes(8));
+        file_put_contents($arquivoChave, $chaveEsperada."\n", LOCK_EX);
+    } catch (Throwable) {
+        $chaveEsperada = '';
+    }
+}
+
+$chaveInformada = (string) ($_GET['chave'] ?? '');
+$liberado = $chaveEsperada !== '' && hash_equals($chaveEsperada, $chaveInformada);
+
+if (! $liberado) {
+    http_response_code(403);
+    ?><!DOCTYPE html>
+    <html lang="pt-BR"><head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow"><title>Diagnóstico</title>
+    <style>
+        body{margin:0;padding:40px 16px;background:#f8fafc;color:#0f172a;
+             font:15px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+        @media(prefers-color-scheme:dark){body{background:#020617;color:#e2e8f0}}
+        .w{max-width:560px;margin:0 auto}
+        h1{font-size:1.2rem;margin:0 0 12px}
+        code{background:rgba(127,127,127,.18);padding:2px 6px;border-radius:4px;font-size:13px}
+        ol{padding-left:20px}
+    </style></head><body><div class="w">
+        <h1>Diagnóstico protegido por chave</h1>
+        <?php if ($chaveEsperada === '') { ?>
+            <p>Não consegui criar o arquivo de chave nesta pasta, então preciso que você defina uma
+            manualmente:</p>
+            <ol>
+                <li>Abra <code>diagnostico.php</code> no Gerenciador de Arquivos.</li>
+                <li>Na linha <code>$chaveManual = '';</code>, escreva algo entre as aspas.</li>
+                <li>Acesse esta página com <code>?chave=</code> seguido do que você escreveu.</li>
+            </ol>
+        <?php } else { ?>
+            <p>Gerei uma chave e gravei ao lado deste arquivo. Para ver o relatório:</p>
+            <ol>
+                <li>Abra <code>diagnostico.chave.txt</code> no Gerenciador de Arquivos
+                    (mesma pasta deste arquivo).</li>
+                <li>Copie o conteúdo e acesse
+                    <code>?chave=<em>o-que-estiver-lá</em></code>.</li>
+            </ol>
+            <p>Isso existe porque o relatório mostra caminhos do servidor e trechos do log — coisas que
+            não devem ficar abertas na internet.</p>
+        <?php } ?>
+    </div></body></html>
+    <?php
+    exit;
+}
+
+// ---------------------------------------------------------------- utilidades
+
+$nomeDaPasta = basename($aqui);
 $app = dirname($aqui).'/app';
 
 /** Permissão em octal, legível. */
 $perm = static function (string $caminho): string {
-    if (! file_exists($caminho)) {
-        return '—';
-    }
-
-    return substr(sprintf('%o', fileperms($caminho)), -3);
+    return file_exists($caminho) ? substr(sprintf('%o', fileperms($caminho)), -3) : '—';
 };
 
 $linha = static function (string $item, bool $ok, string $detalhe, string $comoResolver = ''): array {
@@ -40,42 +105,42 @@ $htaccessAqui = $aqui.'/.htaccess';
 
 $estrutura = [
     $linha(
-        'index.php dentro desta pasta',
+        'index.php nesta pasta',
         is_file($indexAqui),
         is_file($indexAqui)
             ? 'Encontrado, '.number_format((float) filesize($indexAqui)).' bytes, permissão '.$perm($indexAqui)
             : 'AUSENTE — é a causa nº 1 de 403 nesta configuração',
-        'O conteúdo da pasta "public_html" do pacote vai DENTRO de public_html, não como uma subpasta.',
+        'O CONTEÚDO da pasta de document root do pacote vai solto aqui dentro, não como uma subpasta.',
     ),
     $linha(
-        '.htaccess dentro desta pasta',
+        '.htaccess nesta pasta',
         is_file($htaccessAqui),
         is_file($htaccessAqui) ? 'Encontrado, permissão '.$perm($htaccessAqui) : 'Ausente — sem ele as rotas não funcionam',
-        'Copie deploy/public_html-htaccess do pacote para public_html/.htaccess',
+        'Muitos clientes de FTP escondem arquivos que começam com ponto. Ligue a opção de mostrar ocultos e reenvie.',
     ),
     $linha(
         'pasta app/ um nível acima',
         is_dir($app),
         is_dir($app) ? $app : 'AUSENTE em '.$app,
-        'A pasta "app" do pacote fica FORA de public_html, ao lado dela.',
+        'A pasta "app" do pacote fica FORA desta pasta, ao lado dela.',
     ),
     $linha(
         'app/vendor/autoload.php',
         is_file($app.'/vendor/autoload.php'),
         is_file($app.'/vendor/autoload.php') ? 'Encontrado' : 'AUSENTE — o envio das bibliotecas ficou incompleto',
-        'Reenvie a pasta app/vendor inteira. São muitos arquivos; o FTP costuma parar no meio.',
+        'Reenvie a pasta app/vendor inteira. São milhares de arquivos; o FTP costuma parar no meio.',
     ),
     $linha(
         'app/.env',
         is_file($app.'/.env'),
         is_file($app.'/.env') ? 'Encontrado, permissão '.$perm($app.'/.env') : 'AUSENTE',
-        'O arquivo vem pronto no pacote. Alguns clientes de FTP não enviam arquivos que começam com ponto — ligue a opção de mostrar arquivos ocultos.',
+        'Vem pronto no pacote, mas começa com ponto — ligue a exibição de arquivos ocultos no FTP.',
     ),
     $linha(
         'build/ (CSS e JavaScript)',
         is_file($aqui.'/build/manifest.json'),
         is_file($aqui.'/build/manifest.json') ? 'Encontrado' : 'Ausente — as telas carregam sem estilo',
-        'Copie a pasta public_html/build do pacote.',
+        'Copie a pasta build do document root do pacote.',
     ),
 ];
 
@@ -97,7 +162,7 @@ $enviouOFonte = count($marcasDeFonte) >= 3 && ! is_dir($aqui.'/vendor');
 
 // Pastas que vieram no lugar errado são a pista mais útil de todas.
 $suspeitas = [];
-foreach (['public_html', 'app', 'recjota'] as $nome) {
+foreach (['public_html', 'app', 'recjota', 'document-root'] as $nome) {
     if (is_dir($aqui.'/'.$nome)) {
         $suspeitas[] = $nome;
     }
@@ -126,9 +191,8 @@ foreach ($graváveis as $rótulo => $caminho) {
     );
 }
 
-// Leitura do próprio public_html: 403 também vem daqui.
 $permissoes[] = $linha(
-    'public_html (leitura)',
+    $nomeDaPasta.'/ (leitura)',
     is_readable($aqui),
     'Permissão '.$perm($aqui),
     'A pasta precisa ser 755. Com 700 o servidor web não consegue entrar nela e devolve 403.',
@@ -136,7 +200,7 @@ $permissoes[] = $linha(
 
 if (is_file($indexAqui)) {
     $permissoes[] = $linha(
-        'public_html/index.php (leitura)',
+        $nomeDaPasta.'/index.php (leitura)',
         is_readable($indexAqui),
         'Permissão '.$perm($indexAqui),
         'O arquivo precisa ser 644. Com 600 o servidor devolve 403.',
@@ -184,7 +248,7 @@ $procurar = static function (array $raizes, int $profundidadeMax = 4, int $orcam
                 $achados['bibliotecas (vendor)'] ??= $dir.'/vendor';
             }
             if (is_file($dir.'/index.php') && is_dir($dir.'/build')) {
-                $achados['document root do pacote (public_html)'] ??= $dir;
+                $achados['document root do pacote'] ??= $dir;
             }
             if (is_file($dir.'/.env') && is_file($dir.'/artisan')) {
                 $achados['.env'] ??= $dir.'/.env';
@@ -215,14 +279,12 @@ $procurar = static function (array $raizes, int $profundidadeMax = 4, int $orcam
     return $achados;
 };
 
-$raizDominio = dirname($aqui);              // .../domains/seudominio.com.br
-$pastaDominios = dirname($raizDominio);     // .../domains
-$casa = dirname($pastaDominios);            // /home/uXXXXXXXX
+$raizDominio = dirname($aqui);
+$casa = dirname(dirname($raizDominio));
 
 $faltaTudo = ! is_file($indexAqui) && ! is_dir($app);
 $achados = $faltaTudo ? $procurar([$raizDominio, $casa]) : [];
 
-// Conteúdo da raiz do domínio: barato e quase sempre esclarecedor.
 $conteudoRaiz = [];
 foreach ((array) @scandir($raizDominio) as $i) {
     if ($i !== '.' && $i !== '..') {
@@ -279,7 +341,8 @@ foreach ([...$estrutura, ...$permissoes, ...$php] as $c) {
 <body>
 <div class="wrap">
     <h1>Diagnóstico da instalação</h1>
-    <p class="lead">Este arquivo é temporário. <strong>Apague-o assim que terminar.</strong></p>
+    <p class="lead">Arquivo temporário. <strong>Apague <code>diagnostico.php</code> e
+    <code>diagnostico.chave.txt</code> ao terminar.</strong></p>
 
     <?php if ($tudoOk) { ?>
         <div class="alert ok">Estrutura e permissões corretas. Acesse a raiz do site: o instalador deve aparecer.</div>
@@ -295,22 +358,22 @@ foreach ([...$estrutura, ...$permissoes, ...$php] as $c) {
             O sistema não roda assim: faltam as bibliotecas, que só o pacote de instalação traz prontas.
             <br><br>
             Pior: com o projeto dentro do document root, <code>config/</code>, <code>database/</code> e
-            <code>storage/</code> ficam acessíveis pela internet. <strong>Apague tudo o que está em
-            public_html</strong> e envie o pacote de instalação no lugar — ele tem duas pastas, e só uma
-            delas vai aqui dentro.
+            <code>storage/</code> ficam acessíveis pela internet. <strong>Apague tudo o que está nesta
+            pasta</strong> e envie o pacote de instalação no lugar — ele tem duas pastas, e só uma delas
+            vai aqui dentro.
         </div>
     <?php } ?>
 
     <?php if ($suspeitas !== []) { ?>
         <div class="alert bad">
-            Encontrei <strong><?= implode(', ', array_map('htmlspecialchars', $suspeitas)) ?></strong> dentro de
-            public_html. Isso indica que o pacote foi descompactado um nível fundo demais: o
-            <code>index.php</code> precisa ficar solto em public_html, e a pasta <code>app</code> precisa
-            ficar um nível ACIMA, fora dele.
+            Encontrei <strong><?= implode(', ', array_map('htmlspecialchars', $suspeitas)) ?></strong> dentro
+            desta pasta. Isso indica que o pacote foi descompactado um nível fundo demais: o
+            <code>index.php</code> precisa ficar solto aqui, e a pasta <code>app</code> precisa ficar um
+            nível ACIMA, fora desta.
         </div>
     <?php } ?>
 
-<?php if ($faltaTudo) { ?>
+    <?php if ($faltaTudo) { ?>
         <div class="card">
             <h2>Onde estão os arquivos do pacote</h2>
             <?php if ($achados === []) { ?>
@@ -348,25 +411,29 @@ foreach ([...$estrutura, ...$permissoes, ...$php] as $c) {
                 foreach ($conteudoRaiz as [$nome, $ehPasta, $p]) {
                     printf("%-30s %s  %s\n", htmlspecialchars($nome), $ehPasta ? '[pasta]  ' : '[arquivo]', $p);
                 }
-    if ($conteudoRaiz === []) {
-        echo '(vazio ou sem permissão de leitura)';
-    }
-    ?></pre>
+                if ($conteudoRaiz === []) {
+                    echo '(vazio ou sem permissão de leitura)';
+                }
+            ?></pre>
             <p class="detail" style="margin:0">
-                É aqui que a pasta <code>app</code> precisa aparecer, ao lado de <code>public_html</code>.
+                É aqui que a pasta <code>app</code> precisa aparecer, ao lado de
+                <code><?= htmlspecialchars($nomeDaPasta) ?></code>.
             </p>
         </div>
     <?php } ?>
 
     <div class="card">
-        <h2>Onde este arquivo está</h2>
+        <h2>Qual pasta o seu domínio publica</h2>
         <pre><?= htmlspecialchars($aqui) ?></pre>
-        <p class="detail" style="margin:0">Esta é a sua pasta public_html. A pasta <code>app</code> deve estar em <code><?= htmlspecialchars($app) ?></code>.</p>
+        <p class="detail" style="margin:0">
+            É esta — o nome dela é <code><?= htmlspecialchars($nomeDaPasta) ?></code>. A pasta
+            <code>app</code> deve ficar em <code><?= htmlspecialchars($app) ?></code>.
+        </p>
     </div>
 
     <?php
     $blocos = ['Estrutura dos arquivos' => $estrutura, 'Permissões' => $permissoes, 'Ambiente PHP' => $php];
-foreach ($blocos as $titulo => $checks) { ?>
+    foreach ($blocos as $titulo => $checks) { ?>
         <div class="card">
             <h2><?= htmlspecialchars($titulo) ?></h2>
             <ul>
@@ -389,14 +456,13 @@ foreach ($blocos as $titulo => $checks) { ?>
     <div class="card">
         <h2>Conteúdo desta pasta</h2>
         <pre><?php
-        $itens = @scandir($aqui) ?: [];
-foreach ($itens as $i) {
-    if ($i === '.' || $i === '..') {
-        continue;
-    }
-    printf("%-28s %s  %s\n", htmlspecialchars($i), is_dir($aqui.'/'.$i) ? '[pasta]' : '[arquivo]', $perm($aqui.'/'.$i));
-}
-?></pre>
+            foreach ((array) @scandir($aqui) as $i) {
+                if ($i === '.' || $i === '..') {
+                    continue;
+                }
+                printf("%-28s %s  %s\n", htmlspecialchars($i), is_dir($aqui.'/'.$i) ? '[pasta]  ' : '[arquivo]', $perm($aqui.'/'.$i));
+            }
+        ?></pre>
     </div>
 
     <?php if ($ultimoErro) { ?>
@@ -406,7 +472,7 @@ foreach ($itens as $i) {
         </div>
     <?php } ?>
 
-    <p class="detail">Terminou? Apague <code>diagnostico.php</code> de public_html.</p>
+    <p class="detail">Terminou? Apague <code>diagnostico.php</code> e <code>diagnostico.chave.txt</code>.</p>
 </div>
 </body>
 </html>

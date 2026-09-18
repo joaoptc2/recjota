@@ -35,7 +35,31 @@ final class Installation
     /** O instalador só aparece se nenhuma das duas travas estiver acionada. */
     public static function isAvailable(): bool
     {
-        return ! self::isInstalled() && ! self::hasUsers();
+        if (self::isInstalled()) {
+            return false;
+        }
+
+        try {
+            return ! (Schema::hasTable('users') && DB::table('users')->limit(1)->exists());
+        } catch (Throwable) {
+            /*
+             * Banco fora do ar. Falha FECHADA: se o .env já aponta para um
+             * banco, presumimos um sistema instalado com o banco temporariamente
+             * inacessível, e mantemos o instalador trancado. Abri-lo aqui
+             * deixaria qualquer visitante reescrever as credenciais durante uma
+             * queda do MySQL.
+             */
+            return ! self::databaseIsConfigured();
+        }
+    }
+
+    /** O .env já aponta para algum banco concreto? */
+    public static function databaseIsConfigured(): bool
+    {
+        $connection = (string) config('database.default');
+        $database = (string) config("database.connections.{$connection}.database");
+
+        return $database !== '' && ! str_contains($database, 'uXXXXXXXX');
     }
 
     /** Sonda o banco sem explodir quando ele ainda não está configurado. */
