@@ -7,6 +7,7 @@ namespace Tests;
 use App\Models\Client;
 use App\Models\User;
 use App\Support\Enums\RoleName;
+use App\Support\Installation;
 use App\Support\Tenancy\TenantContext;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
@@ -20,6 +21,10 @@ abstract class TestCase extends BaseTestCase
         // O contexto de tenant é resolvido uma vez por processo; entre testes
         // (e entre actingAs) precisa ser descartado.
         app(TenantContext::class)->reset();
+
+        // A suíte roda contra um sistema JÁ instalado. Os testes do instalador
+        // desfazem isto explicitamente.
+        Installation::fake(true);
     }
 
     protected function seedRoles(): void

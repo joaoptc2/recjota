@@ -1,141 +1,299 @@
-# Deploy na Hostinger (hospedagem compartilhada)
+# Instalação na Hostinger (sem SSH, sem Composer, sem Node no servidor)
 
-Este documento cresce a cada fase. O que está aqui já é suficiente para colocar
-a Fase 1 no ar e validar o cron.
+O servidor não roda Composer, não roda Node e não precisa de linha de comando.
+Tudo o que ele recebe é um pacote de arquivos; o resto acontece pelo navegador.
 
-## 1. Antes de subir qualquer coisa
+Fluxo completo: **baixar o pacote → enviar por FTP → abrir o site → cadastrar o
+cron.** Leva uns 20 minutos na primeira vez.
 
-Confira no hPanel e anote:
+---
 
-- [ ] **Versão do PHP web** — hPanel › PHP Configuration. Precisa ser 8.2+.
-- [ ] **Versão do PHP CLI** — é frequentemente diferente da web. Descubra o
-      caminho do binário (`/opt/alt/php83/usr/bin/php`, por exemplo) e confirme
-      com `<caminho> -v`. O `cron.sh` usa esse caminho, não o `php` do PATH.
-- [ ] **`memory_limit` e `max_execution_time`** do plano — hPanel › PHP Info.
-      Se `memory_limit` for menor que 256M, ajuste as expectativas de upload.
-- [ ] **Extensões** — precisam existir: `pdo_mysql`, `curl`, `mbstring`,
-      `openssl`, `gd`, `zip`, `fileinfo`, `intl`.
-- [ ] **Limite de cron jobs do plano** — o sistema foi desenhado para funcionar
-      com **um único** cron (R4), mas confirme.
-- [ ] **SSL ativo** no domínio, com redirecionamento forçado.
+## 1. Obter o pacote de instalação
 
-## 2. Estrutura de diretórios (R9)
+O pacote já vem com as bibliotecas instaladas (`vendor/`), o CSS e o JavaScript
+compilados (`build/`) e uma chave de criptografia gerada. Cerca de 20 MB.
 
-O document root da Hostinger é `public_html`, e o Laravel espera servir de
-`public/`. A solução, sem mexer em configuração de servidor, é manter o projeto
-**fora** do document root:
+> **Não use o botão "Code › Download ZIP" da página do repositório.** Ele
+> entrega o código-fonte sem as bibliotecas (`vendor/`), e o sistema não roda
+> assim. O pacote de instalação é outro arquivo.
+
+**Opção A — baixar o pacote pronto (nada instalado na sua máquina)**
+
+Página **Releases** do repositório › release **Pacote de instalação (mais
+recente)** › seção **Assets** › baixe o `recjota-AAAAMMDD-HHMM.zip`.
+
+Ele é remontado automaticamente a cada alteração no código.
+
+**Opção B — na sua máquina** (precisa de PHP, Composer e Node — só aí, nunca no
+servidor)
+
+```bash
+./deploy/build.sh
+# gera dist/recjota-AAAAMMDD-HHMM.zip
+```
+
+> **Guarde uma cópia do `.env` que vem no pacote.** A `APP_KEY` dentro dele
+> criptografa os tokens das contas conectadas. Trocar essa chave depois torna
+> todos eles ilegíveis, e as contas precisam ser reconectadas uma a uma.
+
+---
+
+## 2. Conferir o plano no hPanel
+
+- [ ] **PHP 8.2 ou superior** — hPanel › Avançado › Configuração PHP.
+- [ ] **Extensões**: `pdo_mysql`, `curl`, `mbstring`, `openssl`, `gd`, `zip`,
+      `fileinfo`, `intl`. Todas vêm ativas por padrão; a tela de instalação
+      confere e avisa se faltar alguma.
+- [ ] **SSL ativo** no domínio.
+- [ ] **Pelo menos 1 cron job** disponível. O sistema foi desenhado para
+      funcionar com um só (R4).
+
+Não é preciso conferir versão de Composer nem de Node: eles não são usados aqui.
+
+---
+
+## 3. Criar o banco de dados
+
+hPanel › **Bancos de Dados MySQL** › criar banco e usuário.
+
+Anote os **nomes completos, com o prefixo** `u........._`. É o erro mais comum:
+a Hostinger mostra o nome curto no formulário e usa o longo na conexão.
+
+---
+
+## 4. Descobrir qual pasta o seu domínio publica
+
+hPanel › **Sites** › **Gerenciador de Arquivos**. A pasta que abre por padrão
+para o seu domínio é o **document root** — é ali que o site vive.
+
+Na Hostinger ela quase sempre se chama `public_html`, dentro de
+`domains/seudominio.com.br/`. Mas o nome varia conforme o plano e o tipo de
+domínio, e **o sistema não depende desse nome**. Se a pasta não existir, crie-a
+(use `public_html`) e aponte o domínio para ela em hPanel › Sites.
+
+Anote o caminho completo. Nos exemplos abaixo ele aparece como
+`/home/uXXXXXXXX/domains/seudominio.com.br/public_html`.
+
+## 5. Enviar os arquivos
+
+Descompacte o `.zip` na sua máquina. Dentro dele há **duas pastas, e elas vão
+para lugares diferentes** — cada uma traz um `LEIA-ME.txt` repetindo isto:
+
+| Pasta no pacote | Para onde vai |
+|---|---|
+| `app/` | **ao lado** do document root, nunca dentro |
+| **conteúdo** de `document-root/` | **dentro** do document root |
+
+Note que é o *conteúdo* de `document-root/`, não a pasta. Depois do envio, o
+`index.php` precisa estar solto no document root.
 
 ```
 /home/uXXXXXXXX/domains/seudominio.com.br/
-├── app/                  ← este repositório (Laravel completo)
-│   ├── app/ bootstrap/ config/ database/ resources/ routes/
-│   ├── storage/ vendor/ .env cron.sh artisan
-│   └── public/
-└── public_html/          ← DOCUMENT ROOT
-    ├── index.php         ← cópia de deploy/public_html-index.php
-    ├── .htaccess         ← cópia de deploy/public_html-htaccess
-    ├── .user.ini         ← cópia de deploy/user.ini
-    ├── build/            ← cópia de app/public/build (assets compilados)
-    ├── media-tmp/        ← ponte de mídia pública, com .htaccess restritivo
-    └── storage/          ← symlink para ../app/storage/app/public
+├── app/               ← a pasta "app" do pacote, inteira
+└── public_html/       ← o CONTEÚDO de "document-root"
+    ├── index.php
+    ├── .htaccess
+    ├── .user.ini
+    ├── build/
+    └── media-tmp/
 ```
 
-Nunca deixe `.env`, `storage/` ou `vendor/` acessíveis via HTTP.
+Envie pelo **Gerenciador de Arquivos** do hPanel (mais simples: dá para subir o
+`.zip` e descompactar lá dentro) ou por qualquer cliente **FTP**.
 
-## 3. Build local (R7 — o servidor não roda Node)
+Dois detalhes que costumam morder:
 
-Na sua máquina, antes de enviar:
+- **Arquivos ocultos.** `.htaccess`, `.user.ini` e `.env` começam com ponto e
+  muitos clientes de FTP não os enviam. Ligue a opção de mostrar arquivos
+  ocultos antes de começar.
+- **`index.html` antigo.** Se já existir um `index.html` ou `default.php` no
+  document root, apague: ele tem prioridade sobre o `index.php` do sistema.
 
-```bash
-composer install --no-dev --optimize-autoloader
-npm ci
-npm run build          # gera public/build, que vai versionado
+### Por que duas pastas
+
+O document root fica exposto na internet. O código, o `.env`, o `storage/` e o
+`vendor/` ficam em `app/`, um nível acima, fora do alcance de qualquer visitante
+(R9). Se a aplicação não estiver exatamente um nível acima, o `index.php`
+procura nas pastas vizinhas antes de desistir — e, ao desistir, mostra uma
+página explicando, em vez de um erro fatal.
+
+---
+
+## 6. Abrir o site
+
+Acesse `https://seudominio.com.br`. O sistema detecta que ainda não foi
+instalado e leva direto ao instalador, em quatro telas:
+
+1. **Ambiente** — confere PHP, extensões e permissões. Cada item reprovado diz
+   exatamente onde resolver no hPanel.
+2. **Configuração** — nome da agência, endereço, fuso de exibição, dados do
+   banco e, opcionalmente, do e-mail. A conexão com o banco é testada antes de
+   gravar; se falhar, a mensagem diz qual é o problema (senha errada, banco
+   inexistente, host inacessível).
+3. **Banco** — cria as tabelas e a matriz de papéis. Há uma caixa opcional de
+   dados de demonstração, para conhecer o sistema antes de usar pra valer.
+   **Não marque numa instalação real.**
+4. **Administrador** — cria o usuário proprietário e faz login.
+
+Ao terminar, o instalador **deixa de existir**: `/instalar` passa a devolver
+404. Para reabri-lo seria preciso apagar `app/storage/app/installed.lock` **e**
+esvaziar a tabela de usuários — as duas coisas, não uma.
+
+### Se a tela de permissões reprovar alguma pasta
+
+Gerenciador de Arquivos › botão direito na pasta › **Permissões** › `755`
+(ou `775` se o `755` não bastar). As pastas que precisam de escrita são
+`app/storage/` (e tudo dentro dela) e `app/bootstrap/cache/`.
+
+---
+
+## 7. Cadastrar o cron — passo obrigatório
+
+**Sem o cron nada é publicado, nenhum e-mail sai e nenhum token é renovado.**
+
+hPanel › Avançado › **Tarefas Cron** › criar, **a cada minuto**:
+
+**Se o hPanel oferecer o tipo "PHP"** (mais simples):
+
+```
+Tipo:    PHP
+Arquivo: /home/uXXXXXXXX/domains/seudominio.com.br/app/cron.php
 ```
 
-## 4. Envio
-
-Com SSH disponível (preferível):
-
-```bash
-cd /home/uXXXXXXXX/domains/seudominio.com.br/app
-git pull
-composer install --no-dev --optimize-autoloader
-```
-
-Sem SSH: envie por SFTP o conteúdo do projeto para `app/`, incluindo `vendor/` e
-`public/build/`.
-
-## 5. Configuração
-
-```bash
-cd /home/uXXXXXXXX/domains/seudominio.com.br/app
-
-cp .env.example .env     # preencha DB_*, MAIL_*, APP_URL
-php artisan key:generate --force
-
-php artisan migrate --force
-php artisan db:seed --class=Database\\Seeders\\RolesAndPermissionsSeeder --force
-
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-php artisan event:cache
-```
-
-Permissões: `storage/` e `bootstrap/cache/` graváveis (755, ou 775 conforme o
-usuário do PHP).
-
-Link de storage — se `symlink()` estiver desabilitado, crie manualmente:
-
-```bash
-php artisan storage:link || ln -s ../app/storage/app/public ../public_html/storage
-```
-
-Copie os arquivos de `deploy/` para o document root:
-
-```bash
-cp deploy/public_html-index.php   ../public_html/index.php
-cp deploy/public_html-htaccess    ../public_html/.htaccess
-cp deploy/user.ini                ../public_html/.user.ini
-cp -r public/build                ../public_html/build
-mkdir -p ../public_html/media-tmp
-cp public/media-tmp/.htaccess     ../public_html/media-tmp/.htaccess
-```
-
-## 6. Cron (Seção 8.1)
-
-No hPanel › Cron Jobs, crie **um** job do tipo **Custom** (o tipo "PHP" não
-aceita `>` nem `&`, R3), rodando a cada minuto:
+**Se oferecer o tipo "Custom"/"Comando"**:
 
 ```
 * * * * * /bin/bash /home/uXXXXXXXX/domains/seudominio.com.br/app/cron.sh
 ```
 
-Se o seu plano limitar a frequência, `*/5 * * * *` também funciona — as janelas
-de publicação apenas ficam menos precisas.
+Os dois fazem a mesma coisa. O `cron.php` existe porque o tipo "PHP" do hPanel
+não aceita os caracteres `>` e `&` de uma linha de shell (R3).
 
-O cron do hPanel roda em **UTC** (R2). É por isso que o banco inteiro é UTC.
+Se o plano limitar a frequência, `*/5 * * * *` também funciona — as janelas de
+publicação só ficam menos precisas.
 
-### Validar o cron
+> O cron do hPanel roda em **UTC**. É exatamente por isso que o banco inteiro é
+> UTC e a conversão para o horário de Brasília acontece só na tela.
 
-1. Espere dois minutos e verifique `storage/logs/cron.log`.
-2. Abra `https://seudominio.com.br/health`. O campo
-   `checks.cron_heartbeat.ok` precisa ser `true`. Enquanto o cron não rodar, o
-   endpoint responde **503** — de propósito.
+### Conferir se o cron pegou
 
-## 7. Checklist de produção
+Espere uns 20 minutos e abra `https://seudominio.com.br/health`. O campo
+`checks.cron_heartbeat.ok` precisa ser `true`. Enquanto o cron não rodar, o
+endpoint responde **503** — de propósito.
 
-- [ ] `/health` responde `200` com `status: ok`.
-- [ ] SSL válido e HTTP redirecionando para HTTPS.
-- [ ] `APP_DEBUG=false` e `APP_ENV=production`.
-- [ ] `.env` inacessível via HTTP (`https://seudominio.com.br/.env` → 403/404).
-- [ ] Envio de e-mail funcionando (teste com a recuperação de senha).
-- [ ] SPF, DKIM e DMARC configurados no DNS.
-- [ ] Login funcionando para um usuário da agência e um do cliente.
-- [ ] Teste ponta a ponta de publicação em conta sandbox — **a partir da Fase 4**.
+O console de manutenção (próxima seção) também mostra isso em português, logo
+no topo.
 
-## 8. Backup
+---
 
-A hospedagem compartilhada não garante backup próprio. A partir da Fase 7 há
-rotina automática; até lá, faça o dump manualmente pelo hPanel › Backups ou via
-phpMyAdmin, e guarde fora do servidor. Retenção recomendada: 14 dias.
+## 8. Console de manutenção — o terminal que a hospedagem não tem
+
+`https://seudominio.com.br/manutencao`, acessível para quem tem papel
+**proprietário**.
+
+Botões disponíveis, cada um com explicação na tela:
+
+| Botão | Quando usar |
+|---|---|
+| Atualizar o banco | Depois de enviar uma nova versão do sistema |
+| Sincronizar papéis e permissões | Depois de atualizações que mexam em permissões |
+| Limpar os caches | Sempre que alterar o `.env` pelo Gerenciador de Arquivos |
+| Reconstruir os caches | Depois de limpar, para o sistema voltar a ficar rápido |
+| Processar a fila agora | Para conferir se e-mails e publicações estão saindo |
+| Registrar batimento / Rodar o agendador | Para testar o agendador sem esperar o cron |
+
+Ele **não aceita comando digitado**: só existe o que está nessa lista, com
+argumentos fixos no código.
+
+### Porta de emergência
+
+Se uma atualização quebrar o login, preencha `MAINTENANCE_TOKEN` no `.env` com
+64 caracteres aleatórios e acesse
+`https://seudominio.com.br/manutencao?token=SEU_TOKEN`.
+
+**Apague o token do `.env` assim que terminar.** Vazio (o padrão de fábrica), o
+console só abre para o proprietário autenticado.
+
+---
+
+## 9. Atualizar o sistema depois
+
+1. Gere um pacote novo (seção 1).
+2. Envie por FTP **apenas a pasta `app/`** e a pasta `build/` do document root,
+   sobrescrevendo. **Não sobrescreva o `.env`** — ele tem as suas credenciais e
+   a sua `APP_KEY`.
+3. Abra `/manutencao` e clique, nesta ordem: **Atualizar o banco** → **Limpar os
+   caches** → **Reconstruir os caches**.
+
+---
+
+## 10. Problemas comuns
+
+### Ferramenta de diagnóstico
+
+Quando o site não abre e não há SSH para investigar, o pacote traz
+`diagnostico.php` na raiz. Copie o arquivo para dentro do document root e
+acesse `https://seudominio.com.br/diagnostico.php`.
+
+Na primeira visita ele gera uma chave e a grava em `diagnostico.chave.txt`, ao
+lado dele. Abra esse arquivo pelo Gerenciador de Arquivos e acesse
+`?chave=<o-que-estiver-lá>`. Essa volta existe porque o relatório mostra
+caminhos do servidor e trechos do log, e nada disso pode ficar aberto na
+internet — quem não consegue abrir um arquivo na pasta não vê o relatório.
+
+Ele então diz onde os arquivos realmente estão, quem consegue lê-los e o que
+falta, item por item. **Apague `diagnostico.php` e `diagnostico.chave.txt` ao
+terminar.**
+
+### "403 Forbidden — Access to this resource on the server is denied!"
+
+Esta mensagem é do servidor da Hostinger, não do sistema. São três causas, em
+ordem de frequência:
+
+1. **O `index.php` não está solto no document root.** Ao descompactar, é comum
+   sobrar um nível: `public_html/document-root/index.php` ou
+   `public_html/recjota/...`. O `index.php` precisa estar diretamente no
+   document root, e a pasta `app` um nível ACIMA, fora dele.
+2. **Permissão errada.** Pastas precisam ser `755` e arquivos `644`. Com `700`
+   na pasta ou `600` no arquivo, o servidor não consegue ler e devolve 403.
+   Gerenciador de Arquivos › botão direito › Permissões.
+3. **Falta o `.htaccess`.** Vários clientes de FTP não enviam arquivos que
+   começam com ponto. Ligue a opção de mostrar arquivos ocultos e confira se
+   `public_html/.htaccess` e `app/.env` chegaram.
+
+O `diagnostico.php` identifica as três.
+
+**Página em branco ou erro 500**
+Quase sempre é permissão de escrita. Confira `app/storage/` e
+`app/bootstrap/cache/` como na seção 5.
+
+**"O sistema não conseguiu falar com o banco de dados"**
+A própria tela lista o que conferir. Se você acabou de editar o `.env`, apague
+os arquivos de `app/bootstrap/cache/` — a configuração em cache continua
+valendo até isso.
+
+**O site mostra a listagem de arquivos em vez do sistema**
+Falta o `index.php` em `public_html`, ou sobrou um `index.html` antigo.
+
+**Os e-mails não chegam**
+Confira SMTP em `/manutencao` › Processar a fila agora, e veja
+`app/storage/logs/`. Configure **SPF, DKIM e DMARC** no DNS — sem isso boa parte
+dos provedores descarta a mensagem silenciosamente.
+
+**O cron não roda**
+Alguns planos levam até 20 minutos para a primeira execução. Se depois disso o
+`/health` continuar acusando, confira o caminho absoluto no cadastro do cron: o
+`u........._` precisa ser o seu.
+
+---
+
+## 11. Backup
+
+A hospedagem compartilhada não garante backup próprio. Até a rotina automática
+da Fase 7, faça manualmente:
+
+- **Banco**: hPanel › Backups, ou phpMyAdmin › Exportar.
+- **Arquivos**: guarde uma cópia do `app/.env` (é o que tem a `APP_KEY`) e da
+  pasta `app/storage/app/`.
+
+Retenção recomendada: 14 dias, fora do servidor.

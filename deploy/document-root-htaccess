@@ -1,5 +1,9 @@
 # Copie para public_html/.htaccess (R9).
 
+# Explícito de propósito: se o servidor não tiver index.php na lista padrão de
+# índices, a raiz do site devolve 403 em vez de abrir o sistema.
+DirectoryIndex index.php
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes

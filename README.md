@@ -20,6 +20,35 @@ ciclo `criar → revisar → aprovar → publicar`.
 | 6 | Métricas e relatórios | pendente |
 | 7 | Refino, performance, acessibilidade e documentação final | pendente |
 
+## Como isto chega na hospedagem
+
+O servidor **não roda Composer, não roda Node e não precisa de SSH**. O deploy é
+cópia de arquivos mais quatro telas no navegador:
+
+1. Você baixa o **pacote de instalação** na página de Releases — um `.zip` de
+   ~20 MB com as dependências instaladas, os assets compilados e uma `APP_KEY`
+   já gerada, remontado a cada alteração no código. (`./deploy/build.sh` gera o
+   mesmo pacote localmente.) **O botão "Code › Download ZIP" não serve**: ele
+   entrega o código-fonte sem as bibliotecas.
+2. Você envia as duas pastas do pacote por FTP ou pelo Gerenciador de Arquivos:
+   `app/` fica **ao lado** da pasta que o domínio publica e o **conteúdo** de
+   `document-root/` vai **dentro** dela. O nome dessa pasta (`public_html` na
+   Hostinger) não está escrito em lugar nenhum do código — o `index.php`
+   localiza a aplicação sozinho.
+3. Abre o site: o **instalador web** confere o ambiente, testa a conexão com o
+   banco, cria as tabelas e o primeiro usuário — e depois disso desaparece.
+4. Cadastra **um** cron job. `cron.php` para o tipo "PHP" do hPanel, `cron.sh`
+   para o tipo "Custom". Sem ele nada é publicado.
+
+Depois da instalação, `/manutencao` substitui o terminal: migrar o banco, limpar
+e reconstruir caches, processar a fila. Lista fechada de comandos, nenhum deles
+digitável.
+
+Se algo der errado no envio, `deploy/diagnostico.php` é um arquivo avulso que
+você copia para a pasta publicada: ele diz onde os arquivos estão, quem
+consegue lê-los e o que falta, atrás de uma chave que só quem tem acesso à
+pasta consegue ler. Passo a passo completo em [DEPLOY.md](DEPLOY.md).
+
 ## Stack
 
 PHP 8.2+ · Laravel 12 · MySQL 8 / MariaDB 10.11+ · Livewire 3 + Alpine ·
@@ -71,6 +100,24 @@ O teste de isolamento multi-tenant (`tests/Feature/Tenancy/TenantIsolationTest.p
 pedir um recurso do cliente B por ID direto na URL.
 
 ## Decisões estruturais que valem para todas as fases
+
+**Nada depende de terminal no servidor.** Instalação, migração e manutenção têm
+caminho pelo navegador. O instalador some depois do primeiro usuário; o console
+de manutenção só roda comandos de um catálogo fechado
+(`App\Support\MaintenanceCommands`) e exige papel de proprietário.
+
+**O agendador roda em processo.** `routes/console.php` usa `Schedule::call()` em
+vez de `Schedule::command()`, porque `command()` abre processo filho via
+`proc_open` — função que parte das hospedagens compartilhadas desabilita.
+
+**Nenhum caminho de servidor fixo no código.** O front controller do document
+root procura a aplicação nas pastas vizinhas e, se não achar, explica o que
+houve em vez de estourar um erro fatal. Nada depende de a pasta publicada se
+chamar `public_html`.
+
+**Sem symlink de storage.** O disco `local` do Laravel serve os arquivos por
+rota própria, o que dispensa `php artisan storage:link` — impossível de rodar
+sem SSH quando a função `symlink()` está desabilitada.
 
 **Fuso horário.** `APP_TIMEZONE=UTC`. Toda coluna `datetime` é UTC. A conversão
 para o fuso do cliente acontece só na exibição, via `display_datetime()` /

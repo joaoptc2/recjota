@@ -28,3 +28,4 @@ Thumbs.db
 # R7: o servidor não roda Node. Por isso /public/build NÃO é ignorado — os
 # assets são compilados localmente (npm run build) e vão versionados, para que
 # o deploy seja apenas cópia de arquivos.
+/dist

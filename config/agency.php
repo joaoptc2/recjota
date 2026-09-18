@@ -11,6 +11,14 @@ return [
     | dos relatorios. Cada cliente pode sobrescrever cor e logo (white-label).
     */
     'name' => env('AGENCY_NAME', 'Recjota'),
+
+    /*
+    | Porta de emergência do console de manutenção (/manutencao). Vazia de
+    | fábrica: sem SSH, é o que permite limpar cache ou migrar quando uma
+    | atualização quebrou o login. Use 64 caracteres aleatórios e remova depois.
+    */
+    'maintenance_token' => env('MAINTENANCE_TOKEN', ''),
+
     'support_email' => env('AGENCY_SUPPORT_EMAIL', 'contato@example.com'),
     'primary_color' => env('AGENCY_PRIMARY_COLOR', '#4F46E5'),
 
