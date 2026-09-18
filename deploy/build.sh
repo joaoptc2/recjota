@@ -19,7 +19,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST="$ROOT/dist"
 STAGE="$DIST/recjota"
 VERSAO="$(date -u +%Y%m%d-%H%M)"
-PACOTE="$DIST/recjota-$VERSAO.zip"
+PACOTE="$DIST/recjota-$VERSAO-duas-pastas.zip"
+PACOTE_UNICA="$DIST/recjota-$VERSAO-pasta-unica.zip"
 
 cd "$ROOT"
 
@@ -34,7 +35,7 @@ echo "==> Copiando a aplicação"
 # Só o que o Laravel precisa em runtime. Ferramenta de desenvolvimento
 # (node_modules, testes, .git, dist) fica de fora.
 for item in app bootstrap config database public resources routes storage \
-            artisan composer.json composer.lock cron.php cron.sh .htaccess; do
+            artisan composer.json composer.lock cron.php cron.sh .htaccess index.php; do
     cp -R "$ROOT/$item" "$STAGE/app/"
 done
 
@@ -135,14 +136,51 @@ test -f "$STAGE/app/.env"                      || { echo "FALHOU: .env ausente";
 test -f "$STAGE/document-root/build/manifest.json" || { echo "FALHOU: assets ausentes"; exit 1; }
 grep -q '^APP_KEY=base64:' "$STAGE/app/.env"   || { echo "FALHOU: APP_KEY não gerada"; exit 1; }
 
+echo "==> Montando a variante de pasta única"
+# Mesmo conteúdo, colocado de outro jeito: tudo dentro da pasta publicada.
+# Menos seguro que o layout de duas pastas, e por isso não é o recomendado —
+# mas elimina a classe de erro "pasta no lugar errado", que é o que mais
+# atrapalha quem instala pela primeira vez.
+UNICA="$DIST/recjota-pasta-unica"
+rm -rf "$UNICA"
+cp -R "$STAGE/app" "$UNICA"
+cp "$ROOT/deploy/diagnostico.php" "$UNICA/diagnostico.php"
+mkdir -p "$UNICA/media-tmp"
+cp "$ROOT/public/media-tmp/.htaccess" "$UNICA/media-tmp/.htaccess"
+cat > "$UNICA/LEIA-ME.txt" <<'TXT'
+MODO PASTA ÚNICA
+
+Envie TODO o conteúdo desta pasta para a pasta que o seu domínio publica
+(no hPanel: Sites > Gerenciador de Arquivos; costuma se chamar public_html).
+
+O index.php precisa ficar solto lá, junto com o .htaccess. Se sobrar uma
+subpasta no meio do caminho, o site não abre.
+
+Os arquivos que começam com ponto (.htaccess, .env) são ocultos: ligue a
+exibição de arquivos ocultos no seu cliente de FTP, senão eles não sobem.
+
+O .htaccess bloqueia o acesso pela web ao .env, ao vendor, ao storage e às
+demais pastas internas. Ele é essencial — sem ele, esses arquivos ficam
+expostos na internet.
+TXT
+
+echo "==> Conferindo a variante de pasta única"
+test -f "$UNICA/index.php"             || { echo "FALHOU: index.php ausente"; exit 1; }
+test -f "$UNICA/.htaccess"             || { echo "FALHOU: .htaccess ausente"; exit 1; }
+test -f "$UNICA/public/index.php"      || { echo "FALHOU: public/index.php ausente"; exit 1; }
+test -f "$UNICA/vendor/autoload.php"   || { echo "FALHOU: vendor ausente"; exit 1; }
+
 echo "==> Compactando"
 cd "$DIST"
 zip -qr "$PACOTE" recjota
+zip -qr "$PACOTE_UNICA" recjota-pasta-unica
 cd "$ROOT"
 
 echo
-echo "Pacote pronto: $PACOTE"
-echo "Tamanho: $(du -h "$PACOTE" | cut -f1)   Arquivos: $(unzip -l "$PACOTE" | tail -1 | awk '{print $2}')"
+echo "Pacote (duas pastas, recomendado): $PACOTE"
+echo "  $(du -h "$PACOTE" | cut -f1)   $(unzip -l "$PACOTE" | tail -1 | awk '{print $2}') arquivos"
+echo "Pacote (pasta única, mais simples): $PACOTE_UNICA"
+echo "  $(du -h "$PACOTE_UNICA" | cut -f1)   $(unzip -l "$PACOTE_UNICA" | tail -1 | awk '{print $2}') arquivos"
 echo
 echo "ATENCAO: o .env dentro do pacote tem a APP_KEY que criptografa os tokens"
 echo "das contas conectadas. Guarde uma copia. Trocar essa chave depois torna"

@@ -17,12 +17,25 @@ compilados (`build/`) e uma chave de criptografia gerada. Cerca de 20 MB.
 > entrega o código-fonte sem as bibliotecas (`vendor/`), e o sistema não roda
 > assim. O pacote de instalação é outro arquivo.
 
-**Opção A — baixar o pacote pronto (nada instalado na sua máquina)**
+Na página **Releases** do repositório, release **Pacote de instalação (mais
+recente)**, seção **Assets**, há dois arquivos. Escolha um:
 
-Página **Releases** do repositório › release **Pacote de instalação (mais
-recente)** › seção **Assets** › baixe o `recjota-AAAAMMDD-HHMM.zip`.
+| Pacote | Como instala | Quando usar |
+|---|---|---|
+| `...-pasta-unica.zip` | extrai **tudo** dentro da pasta publicada | mais simples; funciona como um site PHP comum |
+| `...-duas-pastas.zip` | código fora da pasta publicada | mais seguro; é o recomendado |
 
-Ele é remontado automaticamente a cada alteração no código.
+**Se esta é a sua primeira instalação, use o de pasta única.** Ele elimina o
+erro mais comum — pasta no lugar errado — e o `.htaccess` que acompanha bloqueia
+o acesso pela web ao `.env`, ao `vendor`, ao `storage` e às demais pastas
+internas. Dá para migrar para o layout de duas pastas depois, movendo arquivos.
+
+O que muda na prática: no modo pasta única, quem proteje os arquivos internos é
+o `.htaccess`. No modo duas pastas, eles simplesmente não estão em lugar
+algum que o servidor web alcance. A segunda garantia é mais forte porque não
+depende de configuração.
+
+Os dois pacotes são remontados a cada alteração no código.
 
 **Opção B — na sua máquina** (precisa de PHP, Composer e Node — só aí, nunca no
 servidor)
@@ -247,21 +260,27 @@ terminar.**
 
 ### "403 Forbidden — Access to this resource on the server is denied!"
 
-Esta mensagem é do servidor da Hostinger, não do sistema. São três causas, em
+Esta mensagem é do servidor da Hostinger, não do sistema. Quatro causas, em
 ordem de frequência:
 
-1. **O `index.php` não está solto no document root.** Ao descompactar, é comum
+1. **Uma pasta-pai sem permissão de travessia.** Esta é traiçoeira: não precisa
+   ser a pasta publicada. Basta que qualquer pasta do caminho —
+   `domains/`, `domains/seudominio.com.br/` — esteja com `700`. O servidor não
+   consegue atravessá-la e responde 403 para tudo, inclusive para o
+   `diagnostico.php`. Toda pasta do caminho precisa de `755`.
+2. **O `index.php` não está solto no document root.** Ao descompactar, é comum
    sobrar um nível: `public_html/document-root/index.php` ou
    `public_html/recjota/...`. O `index.php` precisa estar diretamente no
-   document root, e a pasta `app` um nível ACIMA, fora dele.
-2. **Permissão errada.** Pastas precisam ser `755` e arquivos `644`. Com `700`
-   na pasta ou `600` no arquivo, o servidor não consegue ler e devolve 403.
-   Gerenciador de Arquivos › botão direito › Permissões.
-3. **Falta o `.htaccess`.** Vários clientes de FTP não enviam arquivos que
-   começam com ponto. Ligue a opção de mostrar arquivos ocultos e confira se
-   `public_html/.htaccess` e `app/.env` chegaram.
+   document root.
+3. **Permissão do arquivo.** Arquivos precisam ser `644`. Com `600` o servidor
+   não consegue ler e devolve 403.
+4. **Um `.htaccess` que nega tudo.** Se sobrou no document root um `.htaccess`
+   de outra instalação — ou o antigo arquivo de proteção deste projeto, que
+   negava todo acesso — ele bloqueia inclusive o diagnóstico. Na dúvida,
+   renomeie o `.htaccess` para `.htaccess.velho` e recarregue a página.
 
-O `diagnostico.php` identifica as três.
+O `diagnostico.php` identifica as quatro: ele lista a permissão de cada pasta do
+caminho, uma a uma, e marca a que está travando.
 
 **Página em branco ou erro 500**
 Quase sempre é permissão de escrita. Confira `app/storage/` e

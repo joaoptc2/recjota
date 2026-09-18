@@ -58,17 +58,23 @@ jobs:
           Pacote pronto para enviar à hospedagem compartilhada, montado
           automaticamente a partir do commit mais recente.
 
-          **Baixe o arquivo `.zip` abaixo, em Assets.** Não use o botão
+          **Baixe um dos `.zip` abaixo, em Assets.** Não use o botão
           "Code › Download ZIP" da página do repositório: ele entrega o
           código-fonte sem as bibliotecas, e o sistema não roda assim.
 
-          Dentro do pacote há duas pastas, e elas vão para lugares diferentes:
+          **`...-pasta-unica.zip`** — o mais simples, e o indicado para a
+          primeira instalação. Extraia TODO o conteúdo dentro da pasta que o seu
+          domínio publica (na Hostinger, normalmente `public_html`). O
+          `.htaccess` que acompanha bloqueia o acesso pela web ao `.env`, ao
+          `vendor` e ao `storage`.
 
-          - `app/` → **ao lado** da pasta que o seu domínio publica, nunca dentro
-          - o **conteúdo** de `document-root/` → **dentro** dessa pasta
+          **`...-duas-pastas.zip`** — o mais seguro, e o recomendado a médio
+          prazo. Tem duas pastas que vão para lugares diferentes:
 
-          Na Hostinger a pasta publicada costuma se chamar `public_html`, mas o
-          nome não importa: o sistema não depende dele.
+          - `app/` → **ao lado** da pasta publicada, nunca dentro
+          - o **conteúdo** de `document-root/` → **dentro** dela
+
+          O nome da pasta publicada não importa: o sistema não depende dele.
 
           O passo a passo está em `LEIA-ME-PRIMEIRO.md`, dentro do pacote.
           TXT

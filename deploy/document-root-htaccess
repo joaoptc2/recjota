@@ -38,6 +38,6 @@ DirectoryIndex index.php
 </IfModule>
 
 # Nunca servir arquivos sensíveis, mesmo que alguém os copie por engano.
-<FilesMatch "^(\.env.*|\.git.*|composer\.(json|lock)|package(-lock)?\.json|artisan|cron\.sh)$">
+<FilesMatch "^(\.env.*|\.git.*|\.htaccess|\.user\.ini|LEIA-ME\.txt|composer\.(json|lock)|package(-lock)?\.json|artisan|cron\.(sh|php))$">
     Require all denied
 </FilesMatch>

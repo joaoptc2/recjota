@@ -207,6 +207,31 @@ if (is_file($indexAqui)) {
     );
 }
 
+/*
+ * Travessia de diretórios.
+ *
+ * "403 Forbidden — Access to this resource on the server is denied!" é a
+ * resposta clássica quando o servidor web não consegue ENTRAR em alguma pasta
+ * do caminho — e não precisa ser a pasta publicada: basta uma pasta-pai com
+ * permissão 700. O erro não diz qual é, então listamos todas.
+ */
+$travessia = [];
+$acumulado = '';
+foreach (array_filter(explode('/', $aqui)) as $parte) {
+    $acumulado .= '/'.$parte;
+    $modo = $perm($acumulado);
+    // O bit x do "outros" é o que permite atravessar a pasta.
+    $atravessavel = $modo !== '—' && ((int) substr($modo, -1)) % 2 === 1;
+
+    $travessia[] = $linha(
+        $acumulado,
+        $atravessavel,
+        'Permissão '.$modo,
+        'Gerenciador de Arquivos › botão direito nesta pasta › Permissões › 755. '
+        .'Sem o bit de execução, o servidor não consegue atravessá-la e responde 403.',
+    );
+}
+
 // --------------------------------------------------------------------- PHP
 
 $extensões = ['pdo_mysql', 'curl', 'mbstring', 'openssl', 'gd', 'zip', 'fileinfo', 'intl'];
@@ -302,7 +327,7 @@ if (is_file($log) && is_readable($log)) {
 }
 
 $tudoOk = true;
-foreach ([...$estrutura, ...$permissoes, ...$php] as $c) {
+foreach ([...$estrutura, ...$permissoes, ...$travessia, ...$php] as $c) {
     $tudoOk = $tudoOk && $c['ok'];
 }
 
@@ -432,7 +457,12 @@ foreach ([...$estrutura, ...$permissoes, ...$php] as $c) {
     </div>
 
     <?php
-    $blocos = ['Estrutura dos arquivos' => $estrutura, 'Permissões' => $permissoes, 'Ambiente PHP' => $php];
+    $blocos = [
+        'Estrutura dos arquivos' => $estrutura,
+        'Permissões' => $permissoes,
+        'Travessia até esta pasta' => $travessia,
+        'Ambiente PHP' => $php,
+    ];
     foreach ($blocos as $titulo => $checks) { ?>
         <div class="card">
             <h2><?= htmlspecialchars($titulo) ?></h2>
