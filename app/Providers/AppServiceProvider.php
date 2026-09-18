@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Models\Client;
+use App\Models\MediaAsset;
 use App\Models\Post;
 use App\Models\Scopes\ClientScope;
+use App\Services\Media\MediaProcessor;
 use App\Support\Icons;
 use App\Support\Installation;
 use App\Support\Tenancy\TenantContext;
@@ -16,6 +18,8 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,6 +29,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(TenantContext::class, fn () => new TenantContext);
 
         $this->useFileDriversBeforeInstall();
+
+        // GD e não Imagick: é a extensão garantida no plano (R6).
+        $this->app->singleton(ImageManager::class, fn () => new ImageManager(new Driver));
+        $this->app->singleton(MediaProcessor::class);
     }
 
     /**
@@ -96,5 +104,6 @@ class AppServiceProvider extends ServiceProvider
 
         Route::bind('client', $unscoped(Client::class));
         Route::bind('post', $unscoped(Post::class));
+        Route::bind('asset', $unscoped(MediaAsset::class));
     }
 }

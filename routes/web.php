@@ -2,9 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Agency\CalendarController;
 use App\Http\Controllers\Agency\ClientController;
 use App\Http\Controllers\Agency\DashboardController as AgencyDashboard;
+use App\Http\Controllers\Agency\MediaController as AgencyMediaController;
 use App\Http\Controllers\Agency\PostController as AgencyPostController;
+use App\Http\Controllers\Agency\PostEditorController;
+use App\Http\Controllers\Agency\TaskController;
 use App\Http\Controllers\Auth\InvitationController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
@@ -12,6 +16,7 @@ use App\Http\Controllers\HealthController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Install\InstallController;
 use App\Http\Controllers\MaintenanceConsoleController;
+use App\Http\Controllers\MediaController;
 use App\Http\Controllers\Portal\DashboardController as PortalDashboard;
 use App\Http\Controllers\Portal\PostController as PortalPostController;
 use Illuminate\Support\Facades\Route;
@@ -101,7 +106,25 @@ Route::middleware(['auth', 'agency'])->prefix('painel')->name('painel.')->group(
     Route::get('/clientes', [ClientController::class, 'index'])->name('clients.index');
     Route::get('/clientes/{client}', [ClientController::class, 'show'])->name('clients.show');
 
+    Route::get('/calendario', CalendarController::class)->name('calendar');
+    Route::get('/biblioteca', AgencyMediaController::class)->name('media');
+    Route::get('/tarefas', TaskController::class)->name('tasks');
+
+    Route::get('/posts/novo', [PostEditorController::class, 'create'])->name('posts.create');
     Route::get('/posts/{post}', [AgencyPostController::class, 'show'])->name('posts.show');
+    Route::get('/posts/{post}/editar', [PostEditorController::class, 'edit'])->name('posts.edit');
+});
+
+/*
+|------------------------------------------------------------------------------
+| Mídia — entregue só depois da Policy (o arquivo vive fora do webroot)
+|------------------------------------------------------------------------------
+*/
+Route::middleware('auth')->prefix('midia')->name('midia.')->group(function (): void {
+    Route::get('/{asset}/miniatura', [MediaController::class, 'thumb'])->name('thumb');
+    Route::get('/{asset}/preview', [MediaController::class, 'preview'])->name('preview');
+    Route::get('/{asset}/original', [MediaController::class, 'original'])->name('original');
+    Route::get('/logo/{client}', [MediaController::class, 'logo'])->name('logo');
 });
 
 /*

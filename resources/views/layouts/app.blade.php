@@ -3,10 +3,10 @@
     $nav = [
         ['label' => 'Painel', 'route' => 'painel.dashboard', 'icon' => $icons['dashboard'], 'soon' => false],
         ['label' => 'Clientes', 'route' => 'painel.clients.index', 'icon' => $icons['clients'], 'soon' => false],
-        ['label' => 'Calendário', 'route' => null, 'icon' => $icons['calendar'], 'soon' => true],
+        ['label' => 'Calendário', 'route' => 'painel.calendar', 'icon' => $icons['calendar'], 'soon' => false],
         ['label' => 'Aprovações', 'route' => null, 'icon' => $icons['approvals'], 'soon' => true],
-        ['label' => 'Biblioteca', 'route' => null, 'icon' => $icons['media'], 'soon' => true],
-        ['label' => 'Tarefas', 'route' => null, 'icon' => $icons['tasks'], 'soon' => true],
+        ['label' => 'Biblioteca', 'route' => 'painel.media', 'icon' => $icons['media'], 'soon' => false],
+        ['label' => 'Tarefas', 'route' => 'painel.tasks', 'icon' => $icons['tasks'], 'soon' => false],
         ['label' => 'Relatórios', 'route' => null, 'icon' => $icons['reports'], 'soon' => true],
         ['label' => 'Configurações', 'route' => null, 'icon' => $icons['settings'], 'soon' => true],
     ];
@@ -100,7 +100,7 @@
 
     {{-- Navegação inferior abaixo de 640px: 4 ícones, nada mais (Seção 9.2) --}}
     <nav class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-slate-200 bg-white lg:hidden dark:border-slate-800 dark:bg-slate-900" aria-label="Navegação inferior">
-        @foreach (array_slice($nav, 0, 4) as $item)
+        @foreach (collect($nav)->reject(fn ($i) => $i['soon'])->take(4) as $item)
             @php $isActive = $item['route'] && request()->routeIs($item['route'].'*'); @endphp
             <a href="{{ $item['route'] ? route($item['route']) : '#' }}"
                @if ($item['soon']) aria-disabled="true" @endif

@@ -33,7 +33,11 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // serve => false de propósito: a rota embutida entrega qualquer
+            // arquivo do disco sem checar autorização, e aqui todo arquivo
+            // pertence a um cliente. A entrega passa por MediaController, que
+            // consulta a Policy antes de abrir o arquivo (Seção 4.1).
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],

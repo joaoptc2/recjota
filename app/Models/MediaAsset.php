@@ -101,6 +101,33 @@ class MediaAsset extends Model
         return round($this->width / $this->height, 4);
     }
 
+    /** URL da miniatura, sempre passando pela checagem de autorização. */
+    public function thumbUrl(): string
+    {
+        return route('midia.thumb', $this);
+    }
+
+    public function previewUrl(): string
+    {
+        return route('midia.preview', $this);
+    }
+
+    public function humanSize(): string
+    {
+        if ($this->size_bytes === null) {
+            return '—';
+        }
+
+        return $this->size_bytes >= 1048576
+            ? number_format($this->size_bytes / 1048576, 1, ',', '.').' MB'
+            : number_format($this->size_bytes / 1024, 0, ',', '.').' KB';
+    }
+
+    public function dimensionsLabel(): string
+    {
+        return $this->width && $this->height ? $this->width.'×'.$this->height : '—';
+    }
+
     /** Arquivos da ponte pública vencidos, varridos pelo cron horário. */
     public function scopeWithExpiredPublicCopy(Builder $query): Builder
     {

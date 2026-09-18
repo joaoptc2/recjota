@@ -13,7 +13,7 @@ ciclo `criar → revisar → aprovar → publicar`.
 | Fase | Escopo | Situação |
 |------|--------|----------|
 | 1 | Fundação: schema, autenticação, papéis, multi-tenancy, layout base | ✅ entregue |
-| 2 | Conteúdo e calendário (composer, biblioteca de mídia, 4 visões) | pendente |
+| 2 | Conteúdo e calendário (composer, biblioteca de mídia, 4 visões) | ✅ entregue |
 | 3 | Aprovação (versionamento, links mágicos, portal, notificações) | pendente |
 | 4 | Integração Instagram (OAuth, ponte de mídia, motor de publicação) | pendente |
 | 5 | Google Drive e OneDrive | pendente |
@@ -114,6 +114,11 @@ vez de `Schedule::command()`, porque `command()` abre processo filho via
 root procura a aplicação nas pastas vizinhas e, se não achar, explica o que
 houve em vez de estourar um erro fatal. Nada depende de a pasta publicada se
 chamar `public_html`.
+
+**Mídia nunca é servida direto do disco.** O arquivo vive fora do webroot e a
+entrega passa por `MediaController`, que consulta a Policy antes de abrir o
+arquivo. O disco `local` tem `serve => false` de propósito: a rota embutida do
+Laravel entrega qualquer arquivo sem checar autorização.
 
 **Sem symlink de storage.** O disco `local` do Laravel serve os arquivos por
 rota própria, o que dispensa `php artisan storage:link` — impossível de rodar

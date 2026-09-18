@@ -27,6 +27,7 @@ class PostFactory extends Factory
             'scheduled_at' => now()->addDays(fake()->numberBetween(1, 20)),
             'status' => PostStatus::Draft,
             'approval_status' => ApprovalStatus::Pending,
+            'current_version' => 1,
         ];
     }
 

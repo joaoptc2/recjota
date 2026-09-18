@@ -78,9 +78,16 @@ class PostPolicy
         return $this->allows($user, Permission::ApprovalsDecide, $post->client_id);
     }
 
-    /** Post publicado nunca se move no calendário (Seção 6.3). */
+    /**
+     * Quem pode reagendar. O que pode ser reagendado é outra pergunta, e ela
+     * é respondida pela Action ReschedulePost: post publicado não se move
+     * (Seção 6.3).
+     *
+     * Separar as duas coisas importa: negar por permissão é 403, negar por
+     * estado é uma frase explicando o porquê.
+     */
     public function reschedule(User $user, Post $post): bool
     {
-        return $this->schedule($user, $post) && $post->status->isMovableInCalendar();
+        return $this->schedule($user, $post);
     }
 }
