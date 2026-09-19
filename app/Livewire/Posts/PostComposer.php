@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\Posts;
 
+use App\Actions\Approvals\SendApprovalRequest;
 use App\Actions\Posts\CreatePost;
 use App\Actions\Posts\UpdatePost;
 use App\Models\Client;
@@ -320,16 +321,23 @@ class PostComposer extends Component
 
         $this->persist();
 
-        $destino = $this->client->settings?->internal_review_required
-            ? PostStatus::InReview
-            : PostStatus::AwaitingClient;
+        // Revisão interna obrigatória: o post para na equipe antes de ir ao
+        // cliente, e nenhum e-mail sai ainda (Seção 6.6).
+        if ($this->client->settings?->internal_review_required) {
+            $this->post->transitionTo(PostStatus::InReview);
+            $this->post->save();
 
-        $this->post->transitionTo($destino);
-        $this->post->save();
+            session()->flash('status', 'Enviado para revisão interna.');
+            $this->redirectRoute('painel.posts.show', $this->post, navigate: true);
 
-        session()->flash('status', $destino === PostStatus::InReview
-            ? 'Enviado para revisão interna.'
-            : 'Enviado para o cliente aprovar.');
+            return;
+        }
+
+        $links = app(SendApprovalRequest::class)($this->post, auth()->id());
+
+        session()->flash('status', $links[0]['email'] !== null
+            ? sprintf('Enviado para o cliente aprovar — %d e-mail(s) a caminho.', count($links))
+            : 'Pedido aberto. Nenhum aprovador cadastrado: copie o link em Aprovações para enviar à mão.');
 
         $this->redirectRoute('painel.posts.show', $this->post, navigate: true);
     }

@@ -4,7 +4,7 @@
     $primary = $client?->primaryColor() ?? config('agency.primary_color');
     $nav = [
         ['label' => 'Calendário', 'route' => null, 'icon' => $icons['calendar'], 'soon' => true],
-        ['label' => 'Aprovações', 'route' => null, 'icon' => $icons['approvals'], 'soon' => true],
+        ['label' => 'Aprovações', 'route' => 'portal.approvals', 'icon' => $icons['approvals'], 'soon' => false],
         ['label' => 'Arquivos', 'route' => null, 'icon' => $icons['files'], 'soon' => true],
         ['label' => 'Relatórios', 'route' => null, 'icon' => $icons['reports'], 'soon' => true],
         ['label' => 'Solicitações', 'route' => null, 'icon' => $icons['briefs'], 'soon' => true],
@@ -72,7 +72,7 @@
     </main>
 
     <nav class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-slate-200 bg-white sm:hidden dark:border-slate-800 dark:bg-slate-900" aria-label="Navegação inferior">
-        @foreach (array_slice($nav, 0, 4) as $item)
+        @foreach (collect($nav)->sortBy('soon')->take(4) as $item)
             <a href="{{ $item['route'] ? route($item['route']) : '#' }}"
                @if ($item['soon']) aria-disabled="true" @endif
                class="flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium {{ $item['soon'] ? 'text-slate-300 dark:text-slate-700' : 'text-slate-500' }}">

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Agency\ApprovalController as AgencyApprovalController;
 use App\Http\Controllers\Agency\CalendarController;
 use App\Http\Controllers\Agency\ClientController;
 use App\Http\Controllers\Agency\DashboardController as AgencyDashboard;
@@ -9,6 +10,7 @@ use App\Http\Controllers\Agency\MediaController as AgencyMediaController;
 use App\Http\Controllers\Agency\PostController as AgencyPostController;
 use App\Http\Controllers\Agency\PostEditorController;
 use App\Http\Controllers\Agency\TaskController;
+use App\Http\Controllers\Approval\MagicLinkController;
 use App\Http\Controllers\Auth\InvitationController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
@@ -17,6 +19,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Install\InstallController;
 use App\Http\Controllers\MaintenanceConsoleController;
 use App\Http\Controllers\MediaController;
+use App\Http\Controllers\Portal\ApprovalController as PortalApprovalController;
 use App\Http\Controllers\Portal\DashboardController as PortalDashboard;
 use App\Http\Controllers\Portal\PostController as PortalPostController;
 use Illuminate\Support\Facades\Route;
@@ -58,6 +61,19 @@ Route::middleware('maintenance-console')->prefix('manutencao')->name('maintenanc
     Route::post('/{comando}', [MaintenanceConsoleController::class, 'run'])
         ->middleware('throttle:20,1')
         ->name('run');
+});
+
+/*
+|------------------------------------------------------------------------------
+| Aprovação por link mágico — SEM login (Seção 6.6)
+|------------------------------------------------------------------------------
+| Caminho primário de aprovação. Limitado por IP porque é a única superfície do
+| sistema que responde a quem não se autenticou (Seção 10).
+*/
+Route::middleware('throttle:10,60')->prefix('aprovar')->name('aprovacao.')->group(function (): void {
+    Route::get('/lote/{token}', [MagicLinkController::class, 'batch'])->name('lote');
+    Route::get('/{token}', [MagicLinkController::class, 'show'])->name('post');
+    Route::post('/{token}/decidir', [MagicLinkController::class, 'decide'])->name('decidir');
 });
 
 /*
@@ -106,6 +122,7 @@ Route::middleware(['auth', 'agency'])->prefix('painel')->name('painel.')->group(
     Route::get('/clientes', [ClientController::class, 'index'])->name('clients.index');
     Route::get('/clientes/{client}', [ClientController::class, 'show'])->name('clients.show');
 
+    Route::get('/aprovacoes', AgencyApprovalController::class)->name('approvals');
     Route::get('/calendario', CalendarController::class)->name('calendar');
     Route::get('/biblioteca', AgencyMediaController::class)->name('media');
     Route::get('/tarefas', TaskController::class)->name('tasks');
@@ -135,5 +152,6 @@ Route::middleware('auth')->prefix('midia')->name('midia.')->group(function (): v
 Route::middleware(['auth', 'client'])->prefix('portal')->name('portal.')->group(function (): void {
     Route::get('/', PortalDashboard::class)->name('dashboard');
 
+    Route::get('/aprovacoes', PortalApprovalController::class)->name('approvals');
     Route::get('/posts/{post}', [PortalPostController::class, 'show'])->name('posts.show');
 });

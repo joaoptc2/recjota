@@ -14,7 +14,7 @@ ciclo `criar → revisar → aprovar → publicar`.
 |------|--------|----------|
 | 1 | Fundação: schema, autenticação, papéis, multi-tenancy, layout base | ✅ entregue |
 | 2 | Conteúdo e calendário (composer, biblioteca de mídia, 4 visões) | ✅ entregue |
-| 3 | Aprovação (versionamento, links mágicos, portal, notificações) | pendente |
+| 3 | Aprovação (versionamento, links mágicos, portal, notificações) | ✅ entregue |
 | 4 | Integração Instagram (OAuth, ponte de mídia, motor de publicação) | pendente |
 | 5 | Google Drive e OneDrive | pendente |
 | 6 | Métricas e relatórios | pendente |

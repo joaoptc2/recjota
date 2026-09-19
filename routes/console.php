@@ -46,9 +46,14 @@ Schedule::call(fn () => Artisan::call('system:healthcheck'))
     ->everyFifteenMinutes()
     ->withoutOverlapping(10);
 
+// Lembrete de prazo de aprovação. Cada pedido é lembrado uma vez só.
+Schedule::call(fn () => Artisan::call('approvals:remind'))
+    ->name('lembrar-aprovacoes')
+    ->hourly()
+    ->withoutOverlapping(30);
+
 /*
 | Os agendamentos abaixo entram junto com as fases que os criam:
-|   Fase 3  approvals:remind          (hourly)
 |   Fase 4  posts:dispatch-due        (everyMinute)
 |   Fase 4  instagram:check-containers(everyMinute)
 |   Fase 4  tokens:refresh            (dailyAt 03:00)

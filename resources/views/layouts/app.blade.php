@@ -4,7 +4,7 @@
         ['label' => 'Painel', 'route' => 'painel.dashboard', 'icon' => $icons['dashboard'], 'soon' => false],
         ['label' => 'Clientes', 'route' => 'painel.clients.index', 'icon' => $icons['clients'], 'soon' => false],
         ['label' => 'Calendário', 'route' => 'painel.calendar', 'icon' => $icons['calendar'], 'soon' => false],
-        ['label' => 'Aprovações', 'route' => null, 'icon' => $icons['approvals'], 'soon' => true],
+        ['label' => 'Aprovações', 'route' => 'painel.approvals', 'icon' => $icons['approvals'], 'soon' => false],
         ['label' => 'Biblioteca', 'route' => 'painel.media', 'icon' => $icons['media'], 'soon' => false],
         ['label' => 'Tarefas', 'route' => 'painel.tasks', 'icon' => $icons['tasks'], 'soon' => false],
         ['label' => 'Relatórios', 'route' => null, 'icon' => $icons['reports'], 'soon' => true],
