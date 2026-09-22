@@ -8,7 +8,8 @@
         ['label' => 'Biblioteca', 'route' => 'painel.media', 'icon' => $icons['media'], 'soon' => false],
         ['label' => 'Tarefas', 'route' => 'painel.tasks', 'icon' => $icons['tasks'], 'soon' => false],
         ['label' => 'Relatórios', 'route' => null, 'icon' => $icons['reports'], 'soon' => true],
-        ['label' => 'Configurações', 'route' => null, 'icon' => $icons['settings'], 'soon' => true],
+        ['label' => 'Integrações', 'route' => 'painel.integrations', 'icon' => $icons['integrations'], 'soon' => false],
+        ['label' => 'Configurações', 'route' => 'painel.settings', 'icon' => $icons['settings'], 'soon' => false],
     ];
 @endphp
 <!DOCTYPE html>
@@ -89,6 +90,10 @@
 
                 @if (session('status'))
                     <x-alert type="success" class="mt-4">{{ session('status') }}</x-alert>
+                @endif
+
+                @if ($errors->any())
+                    <x-alert type="error" class="mt-4">{{ $errors->first() }}</x-alert>
                 @endif
 
                 <div class="mt-4 lg:mt-6">

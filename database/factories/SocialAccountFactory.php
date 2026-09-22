@@ -28,6 +28,7 @@ class SocialAccountFactory extends Factory
             'account_type' => AccountType::Business,
             'access_token' => 'IGQ'.fake()->sha256(),
             'token_expires_at' => now()->addDays(60),
+            'token_refreshed_at' => now()->subDays(2),
             'scopes' => ['instagram_business_basic', 'instagram_business_content_publish'],
             'connection_status' => ConnectionStatus::Connected,
         ];
@@ -36,6 +37,20 @@ class SocialAccountFactory extends Factory
     public function expiringSoon(): static
     {
         return $this->state(fn () => ['token_expires_at' => now()->addDays(4)]);
+    }
+
+    /** Token trocado há pouco: o Instagram ainda não aceita renovar (< 24h). */
+    public function freshlyRefreshed(): static
+    {
+        return $this->state(fn () => ['token_refreshed_at' => now()->subHours(2)]);
+    }
+
+    public function expired(): static
+    {
+        return $this->state(fn () => [
+            'connection_status' => ConnectionStatus::Expired,
+            'token_expires_at' => now()->subDay(),
+        ]);
     }
 
     public function creator(): static

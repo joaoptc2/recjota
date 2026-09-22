@@ -35,8 +35,14 @@
         </section>
 
         <section class="card lg:col-span-2">
-            <header class="border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+            <header class="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
                 <h2 class="text-sm font-semibold">Contas conectadas</h2>
+                @can('create', \App\Models\SocialAccount::class)
+                    <a href="{{ route('painel.integrations.instagram.connect', $client) }}"
+                       class="inline-flex items-center rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700">
+                        Conectar Instagram
+                    </a>
+                @endcan
             </header>
 
             @forelse ($client->socialAccounts as $account)
@@ -45,18 +51,39 @@
                         <p class="truncate text-sm font-medium">{{ $account->handle() }}</p>
                         <p class="text-xs text-slate-500 dark:text-slate-400">
                             {{ $account->platform->label() }} · {{ $account->account_type->label() }}
+                            @if ($account->token_expires_at)
+                                · acesso válido até {{ display_date($account->token_expires_at, $client) }}
+                            @endif
                         </p>
+                        @if ($account->needsReconnection() && $account->last_error)
+                            <p class="mt-1 text-xs text-rose-600 dark:text-rose-300">{{ $account->last_error }}</p>
+                        @endif
                     </div>
-                    <x-badge :classes="$account->connection_status->isHealthy()
-                        ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-400/30'
-                        : 'bg-rose-50 text-rose-700 ring-rose-600/20 dark:bg-rose-500/10 dark:text-rose-300 dark:ring-rose-400/30'">
-                        {{ $account->connection_status->label() }}
-                    </x-badge>
+                    <div class="flex shrink-0 items-center gap-2">
+                        <x-badge :classes="$account->connection_status->isHealthy()
+                            ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-400/30'
+                            : 'bg-rose-50 text-rose-700 ring-rose-600/20 dark:bg-rose-500/10 dark:text-rose-300 dark:ring-rose-400/30'">
+                            {{ $account->connection_status->label() }}
+                        </x-badge>
+                        @if ($account->needsReconnection() && $account->platform === \App\Support\Enums\SocialPlatform::Instagram)
+                            @can('reconnect', $account)
+                                <a href="{{ route('painel.integrations.instagram.connect', ['client' => $client, 'conta' => $account->ulid]) }}"
+                                   class="inline-flex items-center rounded-lg border border-rose-300 px-2.5 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50 dark:border-rose-700 dark:text-rose-300 dark:hover:bg-rose-950">
+                                    Reconectar
+                                </a>
+                            @endcan
+                        @endif
+                    </div>
                 </div>
             @empty
                 <x-empty-state title="Nenhuma conta conectada">
-                    A conexão com o Instagram entra na Fase 4. Até lá, o conteúdo pode ser criado e
-                    aprovado normalmente.
+                    @can('create', \App\Models\SocialAccount::class)
+                        Clique em "Conectar Instagram" e autorize com um perfil que administre a conta
+                        profissional do cliente. Sem isso, os posts aprovados não têm para onde ir.
+                    @else
+                        Peça a um gestor de contas para conectar o Instagram deste cliente. Até lá, o
+                        conteúdo pode ser criado e aprovado normalmente.
+                    @endcan
                 </x-empty-state>
             @endforelse
         </section>

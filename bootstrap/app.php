@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\ApplyAgencySettings;
 use App\Http\Middleware\AuthorizeMaintenanceConsole;
 use App\Http\Middleware\EnsureAgencyUser;
 use App\Http\Middleware\EnsureClientUser;
@@ -28,8 +29,16 @@ return Application::configure(basePath: dirname(__DIR__))
             // Sistema recém-enviado por FTP cai no instalador, não num erro
             // de conexão com o banco.
             RedirectIfNotInstalled::class,
+            // Nome, e-mail e cor salvos em Configurações sobrescrevem o .env.
+            ApplyAgencySettings::class,
             EnsureUserIsActive::class,
             SetTenantContext::class,
+        ]);
+
+        // Webhooks chegam assinados pela Meta, não por um formulário nosso
+        // (Seção 7.1.6): a assinatura HMAC substitui o token CSRF.
+        $middleware->validateCsrfTokens(except: [
+            'webhooks/*',
         ]);
 
         $middleware->alias([

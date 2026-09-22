@@ -52,12 +52,43 @@ Schedule::call(fn () => Artisan::call('approvals:remind'))
     ->hourly()
     ->withoutOverlapping(30);
 
+// Renovação de tokens do Instagram (Seção 7.1.3). Tokens valem 60 dias; a
+// renovação começa 10 dias antes, o que dá margem para o humano reconectar
+// quando a API recusa. 03:00 UTC = madrugada em todo o Brasil.
+Schedule::call(fn () => Artisan::call('tokens:refresh'))
+    ->name('renovar-tokens')
+    ->dailyAt('03:00')
+    ->withoutOverlapping(30);
+
+// Ponte de mídia pública (Seção 7.4): cópias vencidas saem de hora em hora.
+Schedule::call(fn () => Artisan::call('media:cleanup-temp'))
+    ->name('limpar-ponte')
+    ->hourly()
+    ->withoutOverlapping(30);
+
+// Varredura de órfãos lista o diretório inteiro da ponte, então é diária.
+// 05:00 UTC fica depois da renovação de tokens e antes das métricas.
+Schedule::call(fn () => Artisan::call('media:cleanup-temp', ['--orfaos' => true]))
+    ->name('varrer-ponte-orfaos')
+    ->dailyAt('05:00')
+    ->withoutOverlapping(30);
+
+// Motor de publicação (Seção 6.7 / 8): a cada minuto, o que está na hora vai
+// para a fila. No máximo 20 por passada, para caber na janela de 45s.
+Schedule::call(fn () => Artisan::call('posts:dispatch-due'))
+    ->name('despachar-publicacoes')
+    ->everyMinute()
+    ->withoutOverlapping(2);
+
+// Rede de segurança do polling de container: se o job com delay se perdeu na
+// fila drenada por cron, a checagem é reenfileirada daqui.
+Schedule::call(fn () => Artisan::call('instagram:check-containers'))
+    ->name('checar-containers')
+    ->everyMinute()
+    ->withoutOverlapping(2);
+
 /*
 | Os agendamentos abaixo entram junto com as fases que os criam:
-|   Fase 4  posts:dispatch-due        (everyMinute)
-|   Fase 4  instagram:check-containers(everyMinute)
-|   Fase 4  tokens:refresh            (dailyAt 03:00)
-|   Fase 4  media:cleanup-temp        (hourly)
 |   Fase 6  metrics:sync-accounts     (dailyAt 04:10)
 |   Fase 6  metrics:sync-posts        (dailyAt 04:40)
 |   Fase 6  reports:monthly           (monthlyOn 1, 09:00)

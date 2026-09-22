@@ -8,14 +8,14 @@ O princípio condutor é esse: o gargalo de uma agência não é publicar, é
 conseguir aprovação. Cada decisão de produto aqui existe para reduzir atrito no
 ciclo `criar → revisar → aprovar → publicar`.
 
-## Estado atual: Fase 1 concluída
+## Estado atual: Fases 1 a 4 concluídas
 
 | Fase | Escopo | Situação |
 |------|--------|----------|
 | 1 | Fundação: schema, autenticação, papéis, multi-tenancy, layout base | ✅ entregue |
 | 2 | Conteúdo e calendário (composer, biblioteca de mídia, 4 visões) | ✅ entregue |
 | 3 | Aprovação (versionamento, links mágicos, portal, notificações) | ✅ entregue |
-| 4 | Integração Instagram (OAuth, ponte de mídia, motor de publicação) | pendente |
+| 4 | Integração Instagram (OAuth, ponte de mídia, motor de publicação) | ✅ entregue |
 | 5 | Google Drive e OneDrive | pendente |
 | 6 | Métricas e relatórios | pendente |
 | 7 | Refino, performance, acessibilidade e documentação final | pendente |

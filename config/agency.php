@@ -64,6 +64,7 @@ return [
         'caption_truncate_at' => 125,
         'hashtags_max' => 30,
         'mentions_max' => 50,
+        'carousel_min_items' => 2,
         'carousel_max_items' => 10,
         'publish_per_24h' => 50,
     ],

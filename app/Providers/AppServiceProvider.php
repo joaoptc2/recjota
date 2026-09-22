@@ -8,7 +8,11 @@ use App\Models\Client;
 use App\Models\MediaAsset;
 use App\Models\Post;
 use App\Models\Scopes\ClientScope;
+use App\Services\Integrations\Instagram\InstagramPublisher;
+use App\Services\Integrations\SocialPublisherInterface;
+use App\Services\Media\Contracts\MediaSourceReader;
 use App\Services\Media\MediaProcessor;
+use App\Services\Media\UploadSourceReader;
 use App\Support\Icons;
 use App\Support\Installation;
 use App\Support\Tenancy\TenantContext;
@@ -33,6 +37,14 @@ class AppServiceProvider extends ServiceProvider
         // GD e não Imagick: é a extensão garantida no plano (R6).
         $this->app->singleton(ImageManager::class, fn () => new ImageManager(new Driver));
         $this->app->singleton(MediaProcessor::class);
+
+        // Ponte de mídia pública (Seção 7.4): hoje só lê upload local. Na
+        // Fase 5 esta ligação passa a um leitor composto (Drive/OneDrive).
+        $this->app->bind(MediaSourceReader::class, UploadSourceReader::class);
+
+        // O motor de publicação (Seção 8) só conhece a interface; hoje a única
+        // plataforma é o Instagram.
+        $this->app->bind(SocialPublisherInterface::class, InstagramPublisher::class);
     }
 
     /**

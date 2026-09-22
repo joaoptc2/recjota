@@ -6,9 +6,11 @@ use App\Http\Controllers\Agency\ApprovalController as AgencyApprovalController;
 use App\Http\Controllers\Agency\CalendarController;
 use App\Http\Controllers\Agency\ClientController;
 use App\Http\Controllers\Agency\DashboardController as AgencyDashboard;
+use App\Http\Controllers\Agency\IntegrationController;
 use App\Http\Controllers\Agency\MediaController as AgencyMediaController;
 use App\Http\Controllers\Agency\PostController as AgencyPostController;
 use App\Http\Controllers\Agency\PostEditorController;
+use App\Http\Controllers\Agency\SettingsController;
 use App\Http\Controllers\Agency\TaskController;
 use App\Http\Controllers\Approval\MagicLinkController;
 use App\Http\Controllers\Auth\InvitationController;
@@ -17,11 +19,13 @@ use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Install\InstallController;
+use App\Http\Controllers\Integrations\InstagramOAuthController;
 use App\Http\Controllers\MaintenanceConsoleController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\Portal\ApprovalController as PortalApprovalController;
 use App\Http\Controllers\Portal\DashboardController as PortalDashboard;
 use App\Http\Controllers\Portal\PostController as PortalPostController;
+use App\Http\Controllers\Webhooks\InstagramWebhookController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -30,6 +34,18 @@ use Illuminate\Support\Facades\Route;
 |------------------------------------------------------------------------------
 */
 Route::get('/health', HealthController::class)->name('health');
+
+/*
+|------------------------------------------------------------------------------
+| Webhook do Instagram (Seção 7.1.6) — sem auth e sem CSRF
+|------------------------------------------------------------------------------
+| GET confirma a assinatura (hub.challenge); POST exige X-Hub-Signature-256
+| válida e só enfileira. A exclusão do CSRF está em bootstrap/app.php.
+*/
+Route::prefix('webhooks')->name('webhooks.')->group(function (): void {
+    Route::get('/instagram', [InstagramWebhookController::class, 'verify'])->name('instagram.verify');
+    Route::post('/instagram', [InstagramWebhookController::class, 'receive'])->name('instagram.receive');
+});
 
 /*
 |------------------------------------------------------------------------------
@@ -130,6 +146,38 @@ Route::middleware(['auth', 'agency'])->prefix('painel')->name('painel.')->group(
     Route::get('/posts/novo', [PostEditorController::class, 'create'])->name('posts.create');
     Route::get('/posts/{post}', [AgencyPostController::class, 'show'])->name('posts.show');
     Route::get('/posts/{post}/editar', [PostEditorController::class, 'edit'])->name('posts.edit');
+
+    // Integrações (Seção 7.1.1): só a agência conecta contas; o portal do
+    // cliente nunca vê esta tela.
+    Route::get('/integracoes/instagram/conectar/{client}', [InstagramOAuthController::class, 'redirect'])
+        ->name('integrations.instagram.connect');
+});
+
+/*
+|------------------------------------------------------------------------------
+| Telas técnicas do painel (Seções 6.12 e 11.2)
+|------------------------------------------------------------------------------
+| A Policy responde antes do middleware de agência: usuário do portal recebe
+| 403 (e não um redirecionamento) para uma tela que não existe para ele.
+*/
+Route::middleware(['auth'])->prefix('painel')->name('painel.')->group(function (): void {
+    Route::get('/integracoes', IntegrationController::class)
+        ->middleware('can:viewAny,App\\Models\\SocialAccount')
+        ->name('integrations');
+
+    Route::get('/configuracoes', SettingsController::class)
+        ->middleware('can:viewAny,App\\Models\\Setting')
+        ->name('settings');
+});
+
+/*
+|------------------------------------------------------------------------------
+| Callbacks OAuth — o caminho é fixo porque está cadastrado no app da Meta
+|------------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'agency'])->prefix('oauth')->name('oauth.')->group(function (): void {
+    Route::get('/instagram/callback', [InstagramOAuthController::class, 'callback'])
+        ->name('instagram.callback');
 });
 
 /*

@@ -14,6 +14,7 @@ use Database\Factories\SocialAccountFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -71,7 +72,9 @@ class SocialAccount extends Model
             'refresh_token' => 'encrypted',
             'scopes' => 'array',
             'token_expires_at' => 'datetime',
+            'token_refreshed_at' => 'datetime',
             'last_synced_at' => 'datetime',
+            'consent_given_at' => 'datetime',
         ];
     }
 
@@ -90,6 +93,12 @@ class SocialAccount extends Model
         return $this->hasMany(MetricAccountDaily::class);
     }
 
+    /** Usuário da agência que autorizou a conexão (consentimento LGPD). */
+    public function consentGivenBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'consent_given_by');
+    }
+
     public function scopeConnected(Builder $query): Builder
     {
         return $query->where('connection_status', ConnectionStatus::Connected->value);
@@ -102,9 +111,34 @@ class SocialAccount extends Model
             ->where('token_expires_at', '<=', now()->addDays($days));
     }
 
+    /**
+     * O Instagram só renova token com pelo menos 24h de idade (Seção 7.1.3).
+     * Contas antigas, sem token_refreshed_at, usam updated_at como aproximação.
+     */
+    public function scopeTokenOlderThan(Builder $query, \DateTimeInterface $limit): Builder
+    {
+        return $query->where(function (Builder $q) use ($limit): void {
+            $q->where('token_refreshed_at', '<=', $limit)
+                ->orWhere(function (Builder $q) use ($limit): void {
+                    $q->whereNull('token_refreshed_at')->where('updated_at', '<=', $limit);
+                });
+        });
+    }
+
+    /** Conta que precisa de nova autorização humana (token expirado/revogado/erro). */
+    public function needsReconnection(): bool
+    {
+        return ! ($this->connection_status?->isHealthy() ?? false);
+    }
+
+    /** Dias até o token vencer (negativo quando já venceu). Carbon 3 devolve float. */
     public function daysUntilTokenExpires(): ?int
     {
-        return $this->token_expires_at?->diffInDays(now(), absolute: false) * -1;
+        if ($this->token_expires_at === null) {
+            return null;
+        }
+
+        return (int) round(now()->diffInDays($this->token_expires_at, absolute: false));
     }
 
     public function canPublishStories(): bool

@@ -25,7 +25,13 @@ enum PostType: string
 
     public function maxMediaItems(): int
     {
-        return $this === self::Carousel ? config('agency.limits.carousel_max_items') : 1;
+        return $this === self::Carousel ? (int) config('agency.limits.carousel_max_items') : 1;
+    }
+
+    /** O Instagram recusa carrossel com um item só (Seção 7.1.4). */
+    public function minMediaItems(): int
+    {
+        return $this === self::Carousel ? (int) config('agency.limits.carousel_min_items', 2) : 1;
     }
 
     /** Stories só são publicáveis por contas Business (Seção 7.1.5). */

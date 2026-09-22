@@ -134,6 +134,40 @@ class ComposerAcceptanceTest extends TestCase
         $componente->assertHasErrors('media');
     }
 
+    public function test_carrossel_com_um_item_so_e_bloqueado(): void
+    {
+        $midia = MediaAsset::factory()->create(['client_id' => $this->cliente->getKey()]);
+
+        $componente = Livewire::test(PostComposer::class, ['client' => $this->cliente])
+            ->set('type', PostType::Carousel->value)
+            ->call('toggleMedia', $midia->getKey());
+
+        $this->assertContains(
+            'Carrossel precisa de pelo menos 2 itens; com um só, escolha Imagem ou Vídeo.',
+            $componente->instance()->blockingIssues(),
+        );
+    }
+
+    public function test_post_sem_conta_do_instagram_e_bloqueado_com_o_proximo_passo(): void
+    {
+        $semConta = Livewire::test(PostComposer::class, ['client' => $this->cliente]);
+
+        $this->assertContains(
+            'Este cliente ainda não tem conta do Instagram conectada. Conecte uma na página do cliente antes de agendar.',
+            $semConta->instance()->blockingIssues(),
+        );
+
+        SocialAccount::factory()->create(['client_id' => $this->cliente->getKey()]);
+
+        $semEscolha = Livewire::test(PostComposer::class, ['client' => $this->cliente])
+            ->set('socialAccountId', null);
+
+        $this->assertContains(
+            'Escolha a conta do Instagram que vai publicar este post.',
+            $semEscolha->instance()->blockingIssues(),
+        );
+    }
+
     public function test_story_em_conta_creator_e_bloqueado(): void
     {
         $creator = SocialAccount::factory()->creator()->create(['client_id' => $this->cliente->getKey()]);

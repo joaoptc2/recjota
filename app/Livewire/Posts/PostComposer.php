@@ -186,6 +186,16 @@ class PostComposer extends Component
             $erros[] = sprintf('%s aceita no máximo %d itens.', $tipo->label(), $tipo->maxMediaItems());
         }
 
+        if ($this->selectedMedia()->isNotEmpty() && $this->selectedMedia()->count() < $tipo->minMediaItems()) {
+            $erros[] = sprintf('%s precisa de pelo menos %d itens; com um só, escolha Imagem ou Vídeo.', $tipo->label(), $tipo->minMediaItems());
+        }
+
+        if ($this->socialAccountId === null) {
+            $erros[] = $this->accounts()->isEmpty()
+                ? 'Este cliente ainda não tem conta do Instagram conectada. Conecte uma na página do cliente antes de agendar.'
+                : 'Escolha a conta do Instagram que vai publicar este post.';
+        }
+
         if ($this->captionLength() > $limites['caption_max_chars']) {
             $erros[] = sprintf('A legenda tem %d caracteres; o limite é %d.', $this->captionLength(), $limites['caption_max_chars']);
         }

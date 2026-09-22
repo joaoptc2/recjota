@@ -46,9 +46,8 @@ class Phase2PagesTest extends TestCase
             $resposta->assertSee('href="'.route($rota).'"', escape: false);
         }
 
-        // Sobram desativados apenas os de fases futuras: Relatórios (Fase 6) e
-        // Configurações (Fase 7).
-        $this->assertSame(2, substr_count($resposta->getContent(), 'em breve'));
+        // Sobra desativado apenas o de fase futura: Relatórios (Fase 6).
+        $this->assertSame(1, substr_count($resposta->getContent(), 'em breve'));
     }
 
     public function test_criador_nao_pode_abrir_o_editor_de_post_alheio(): void
