@@ -1,0 +1,20 @@
+{
+  "data": [
+    {
+      "name": "profile_views",
+      "period": "day",
+      "title": "Profile Views",
+      "description": "Total number of users who have viewed the profile within the specified period.",
+      "total_value": {"value": 87},
+      "id": "17841405793187218/insights/profile_views/day"
+    },
+    {
+      "name": "website_clicks",
+      "period": "day",
+      "title": "Website clicks",
+      "description": "Total number of taps on the website link in the profile.",
+      "total_value": {"value": 12},
+      "id": "17841405793187218/insights/website_clicks/day"
+    }
+  ]
+}

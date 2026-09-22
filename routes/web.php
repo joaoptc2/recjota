@@ -10,6 +10,7 @@ use App\Http\Controllers\Agency\IntegrationController;
 use App\Http\Controllers\Agency\MediaController as AgencyMediaController;
 use App\Http\Controllers\Agency\PostController as AgencyPostController;
 use App\Http\Controllers\Agency\PostEditorController;
+use App\Http\Controllers\Agency\ReportController as AgencyReportController;
 use App\Http\Controllers\Agency\SettingsController;
 use App\Http\Controllers\Agency\TaskController;
 use App\Http\Controllers\Approval\MagicLinkController;
@@ -26,6 +27,8 @@ use App\Http\Controllers\MediaController;
 use App\Http\Controllers\Portal\ApprovalController as PortalApprovalController;
 use App\Http\Controllers\Portal\DashboardController as PortalDashboard;
 use App\Http\Controllers\Portal\PostController as PortalPostController;
+use App\Http\Controllers\Portal\ReportController as PortalReportController;
+use App\Http\Controllers\ReportDownloadController;
 use App\Http\Controllers\Webhooks\InstagramWebhookController;
 use Illuminate\Support\Facades\Route;
 
@@ -144,6 +147,11 @@ Route::middleware(['auth', 'agency'])->prefix('painel')->name('painel.')->group(
     Route::get('/biblioteca', AgencyMediaController::class)->name('media');
     Route::get('/tarefas', TaskController::class)->name('tasks');
 
+    // Relatórios (Seção 6.8): painel por cliente, CSV e PDF sob demanda.
+    Route::get('/relatorios', [AgencyReportController::class, 'index'])->name('reports');
+    Route::get('/relatorios/{client}/exportar.csv', [AgencyReportController::class, 'export'])->name('reports.export');
+    Route::post('/relatorios/{client}/gerar', [AgencyReportController::class, 'generate'])->name('reports.generate');
+
     Route::get('/posts/novo', [PostEditorController::class, 'create'])->name('posts.create');
     Route::get('/posts/{post}', [AgencyPostController::class, 'show'])->name('posts.show');
     Route::get('/posts/{post}/editar', [PostEditorController::class, 'edit'])->name('posts.edit');
@@ -198,6 +206,9 @@ Route::middleware(['auth', 'agency'])->prefix('oauth')->name('oauth.')->group(fu
 | Mídia — entregue só depois da Policy (o arquivo vive fora do webroot)
 |------------------------------------------------------------------------------
 */
+// PDF do relatório: painel e portal baixam pela mesma rota, a Policy decide.
+Route::middleware('auth')->get('/relatorios/{report}/baixar', ReportDownloadController::class)->name('reports.download');
+
 Route::middleware('auth')->prefix('midia')->name('midia.')->group(function (): void {
     Route::get('/{asset}/miniatura', [MediaController::class, 'thumb'])->name('thumb');
     Route::get('/{asset}/preview', [MediaController::class, 'preview'])->name('preview');
@@ -214,5 +225,6 @@ Route::middleware(['auth', 'client'])->prefix('portal')->name('portal.')->group(
     Route::get('/', PortalDashboard::class)->name('dashboard');
 
     Route::get('/aprovacoes', PortalApprovalController::class)->name('approvals');
+    Route::get('/relatorios', PortalReportController::class)->name('reports');
     Route::get('/posts/{post}', [PortalPostController::class, 'show'])->name('posts.show');
 });

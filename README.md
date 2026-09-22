@@ -8,7 +8,7 @@ O princípio condutor é esse: o gargalo de uma agência não é publicar, é
 conseguir aprovação. Cada decisão de produto aqui existe para reduzir atrito no
 ciclo `criar → revisar → aprovar → publicar`.
 
-## Estado atual: Fases 1 a 5 concluídas
+## Estado atual: Fases 1 a 6 concluídas
 
 | Fase | Escopo | Situação |
 |------|--------|----------|
@@ -17,7 +17,7 @@ ciclo `criar → revisar → aprovar → publicar`.
 | 3 | Aprovação (versionamento, links mágicos, portal, notificações) | ✅ entregue |
 | 4 | Integração Instagram (OAuth, ponte de mídia, motor de publicação) | ✅ entregue |
 | 5 | Google Drive e OneDrive (OAuth, seletor, ponte de mídia) | ✅ entregue |
-| 6 | Métricas e relatórios | pendente |
+| 6 | Métricas e relatórios (coleta diária, painéis, PDF white-label, CSV, envio mensal) | ✅ entregue |
 | 7 | Refino, performance, acessibilidade e documentação final | pendente |
 
 ## Como isto chega na hospedagem
@@ -195,6 +195,30 @@ Levam semanas e são o caminho crítico do projeto:
   manter o refresh token da Microsoft vivo e avisar o gestor quando o acesso é
   revogado. Desconectar não apaga os arquivos importados; eles só voltam a
   publicar depois de reconectar.
+
+### Como as métricas funcionam (Fase 6)
+
+- **Coleta**: `metrics:sync-accounts` (04:10 UTC) e `metrics:sync-posts`
+  (04:40 UTC) só enfileiram; um job por conta ou por post faz duas ou três
+  chamadas curtas à API de insights e grava em `metrics_account_daily` (uma
+  linha por conta e dia) e `metrics_post` (uma linha por post e dia de coleta).
+  Rodar de novo no mesmo dia atualiza, nunca duplica.
+- **Catálogo mutável da Meta**: cada consulta pede o conjunto atual de métricas
+  e, se a API recusar com código 100, repete com o conjunto mínimo. O que não
+  vier fica `null` e aparece como **indisponível** em tela, CSV e PDF — nunca
+  zero (Seção 14). `views` de imagem entra como impressões; de reel/vídeo,
+  como visualizações.
+- **Painéis**: `/painel/relatorios` (agência, com CSV e "Gerar PDF") e
+  `/portal/relatorios` (cliente, só leitura). Período de 7/30/90 dias ou mês
+  atual, no fuso do cliente; melhores posts pela última coleta; comparativo
+  dos últimos 6 meses.
+- **PDF white-label**: Dompdf (PHP puro), logo e cor primária do cliente, com
+  fallback para os da agência. `reports:monthly` (dia 1, 09:00 UTC) gera o mês
+  anterior de cada cliente ativo com conta e envia por e-mail (anexo) aos
+  administradores do cliente e aos gestores. O PDF fica em `storage/app` e só
+  sai pela rota de download protegida pela Policy.
+- **Melhor horário** (Seção 6.5): o composer sugere as três horas com maior
+  engajamento médio da conta quando há 30 ou mais posts medidos.
 
 ## Deploy
 

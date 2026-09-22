@@ -151,6 +151,12 @@
                     <input id="scheduledAt" type="datetime-local" wire:model.live="scheduledAt" class="input">
                     {{-- O texto auxiliar com o UTC elimina a classe de bug mais
                          comum em agendamento (Seção 8.4). --}}
+                    @if ($this->suggestedHours() !== [])
+                        <p class="mt-1.5 text-xs text-emerald-700 dark:text-emerald-300">
+                            Melhores horários desta conta pelo histórico:
+                            {{ collect($this->suggestedHours())->map(fn ($h) => sprintf('%02dh (%s%% de engajamento)', $h['hour'], number_format($h['engagement'], 1, ',', '.')))->implode(', ') }}.
+                        </p>
+                    @endif
                     @if ($this->scheduleHint())
                         <p class="hint mt-1.5 text-xs text-slate-500 dark:text-slate-400">{{ $this->scheduleHint() }}</p>
                     @endif

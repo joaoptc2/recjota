@@ -68,6 +68,24 @@ Schedule::call(fn () => Artisan::call('cloud:refresh-tokens'))
     ->dailyAt('03:20')
     ->withoutOverlapping(30);
 
+// Métricas (Seção 6.8): coleta espaçada para não concentrar CPU. Cada
+// comando só enfileira; a fila drena nas janelas de 45s.
+Schedule::call(fn () => Artisan::call('metrics:sync-accounts'))
+    ->name('coletar-metricas-contas')
+    ->dailyAt('04:10')
+    ->withoutOverlapping(30);
+
+Schedule::call(fn () => Artisan::call('metrics:sync-posts'))
+    ->name('coletar-metricas-posts')
+    ->dailyAt('04:40')
+    ->withoutOverlapping(30);
+
+// Relatório mensal em PDF, dia 1 às 09:00 UTC (06:00 em Brasília).
+Schedule::call(fn () => Artisan::call('reports:monthly'))
+    ->name('relatorios-mensais')
+    ->monthlyOn(1, '09:00')
+    ->withoutOverlapping(60);
+
 // Ponte de mídia pública (Seção 7.4): cópias vencidas saem de hora em hora.
 Schedule::call(fn () => Artisan::call('media:cleanup-temp'))
     ->name('limpar-ponte')

@@ -1,0 +1,12 @@
+{
+  "data": [
+    {
+      "name": "reach",
+      "period": "day",
+      "values": [{"value": 1530, "end_time": "2026-09-21T07:00:00+0000"}],
+      "title": "Accounts reached",
+      "description": "The number of unique accounts that have seen your content.",
+      "id": "17841405793187218/insights/reach/day"
+    }
+  ]
+}

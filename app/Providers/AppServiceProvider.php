@@ -8,8 +8,11 @@ use App\Models\Client;
 use App\Models\CloudConnection;
 use App\Models\MediaAsset;
 use App\Models\Post;
+use App\Models\Report;
 use App\Models\Scopes\ClientScope;
+use App\Services\Integrations\Instagram\InstagramInsights;
 use App\Services\Integrations\Instagram\InstagramPublisher;
+use App\Services\Integrations\SocialInsightsInterface;
 use App\Services\Integrations\SocialPublisherInterface;
 use App\Services\Media\CloudSourceReader;
 use App\Services\Media\CompositeSourceReader;
@@ -51,6 +54,7 @@ class AppServiceProvider extends ServiceProvider
         // O motor de publicação (Seção 8) só conhece a interface; hoje a única
         // plataforma é o Instagram.
         $this->app->bind(SocialPublisherInterface::class, InstagramPublisher::class);
+        $this->app->bind(SocialInsightsInterface::class, InstagramInsights::class);
     }
 
     /**
@@ -124,5 +128,6 @@ class AppServiceProvider extends ServiceProvider
         Route::bind('post', $unscoped(Post::class));
         Route::bind('asset', $unscoped(MediaAsset::class));
         Route::bind('connection', $unscoped(CloudConnection::class));
+        Route::bind('report', $unscoped(Report::class));
     }
 }

@@ -13,6 +13,7 @@ use App\Models\MediaAsset;
 use App\Models\Post;
 use App\Models\SocialAccount;
 use App\Services\Media\PlatformMediaValidator;
+use App\Services\Metrics\MetricsSummary;
 use App\Support\DataObjects\PostData;
 use App\Support\Display;
 use App\Support\Enums\PostStatus;
@@ -154,6 +155,24 @@ class PostComposer extends Component
     public function captionPreviewTruncated(): bool
     {
         return $this->captionLength() > config('agency.limits.caption_truncate_at');
+    }
+
+    /**
+     * Melhores horários da conta escolhida (Seção 6.5), só quando há 30 ou
+     * mais posts medidos. Vazio = sem base para sugerir, e a tela não inventa.
+     *
+     * @return array<int, array{hour: int, engagement: float, posts: int}>
+     */
+    #[Computed]
+    public function suggestedHours(): array
+    {
+        if ($this->socialAccountId === null) {
+            return [];
+        }
+
+        $conta = SocialAccount::find($this->socialAccountId);
+
+        return $conta === null ? [] : app(MetricsSummary::class)->bestPostingHours($conta);
     }
 
     #[Computed]

@@ -1,0 +1,8 @@
+{
+  "data": [
+    {"name": "reach", "period": "lifetime", "values": [{"value": 9800}], "title": "Reach", "description": "", "id": "17895695668004550/insights/reach/lifetime"},
+    {"name": "saved", "period": "lifetime", "values": [{"value": 120}], "title": "Saved", "description": "", "id": "17895695668004550/insights/saved/lifetime"},
+    {"name": "shares", "period": "lifetime", "values": [{"value": 64}], "title": "Shares", "description": "", "id": "17895695668004550/insights/shares/lifetime"},
+    {"name": "views", "period": "lifetime", "values": [{"value": 15400}], "title": "Views", "description": "", "id": "17895695668004550/insights/views/lifetime"}
+  ]
+}

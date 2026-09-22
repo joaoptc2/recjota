@@ -7,7 +7,7 @@
         ['label' => 'Aprovações', 'route' => 'painel.approvals', 'icon' => $icons['approvals'], 'soon' => false],
         ['label' => 'Biblioteca', 'route' => 'painel.media', 'icon' => $icons['media'], 'soon' => false],
         ['label' => 'Tarefas', 'route' => 'painel.tasks', 'icon' => $icons['tasks'], 'soon' => false],
-        ['label' => 'Relatórios', 'route' => null, 'icon' => $icons['reports'], 'soon' => true],
+        ['label' => 'Relatórios', 'route' => 'painel.reports', 'icon' => $icons['reports'], 'soon' => false],
         ['label' => 'Integrações', 'route' => 'painel.integrations', 'icon' => $icons['integrations'], 'soon' => false],
         ['label' => 'Configurações', 'route' => 'painel.settings', 'icon' => $icons['settings'], 'soon' => false],
     ];

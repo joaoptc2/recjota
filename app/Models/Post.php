@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
@@ -146,6 +147,12 @@ class Post extends Model
     public function metrics(): HasMany
     {
         return $this->hasMany(MetricPost::class);
+    }
+
+    /** A coleta mais recente: é o que os painéis e o relatório mostram. */
+    public function latestMetric(): HasOne
+    {
+        return $this->hasOne(MetricPost::class)->latestOfMany('collected_at');
     }
 
     public function publishLogs(): HasMany

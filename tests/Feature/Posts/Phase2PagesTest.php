@@ -42,12 +42,12 @@ class Phase2PagesTest extends TestCase
     {
         $resposta = $this->get(route('painel.dashboard'))->assertOk();
 
-        foreach (['painel.calendar', 'painel.media', 'painel.tasks', 'painel.approvals'] as $rota) {
+        foreach (['painel.calendar', 'painel.media', 'painel.tasks', 'painel.approvals', 'painel.reports'] as $rota) {
             $resposta->assertSee('href="'.route($rota).'"', escape: false);
         }
 
-        // Sobra desativado apenas o de fase futura: Relatórios (Fase 6).
-        $this->assertSame(1, substr_count($resposta->getContent(), 'em breve'));
+        // Todas as fases entregues: nada mais fica marcado como "em breve".
+        $this->assertSame(0, substr_count($resposta->getContent(), 'em breve'));
     }
 
     public function test_criador_nao_pode_abrir_o_editor_de_post_alheio(): void

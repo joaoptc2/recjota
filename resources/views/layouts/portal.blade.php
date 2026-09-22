@@ -6,7 +6,7 @@
         ['label' => 'Calendário', 'route' => null, 'icon' => $icons['calendar'], 'soon' => true],
         ['label' => 'Aprovações', 'route' => 'portal.approvals', 'icon' => $icons['approvals'], 'soon' => false],
         ['label' => 'Arquivos', 'route' => null, 'icon' => $icons['files'], 'soon' => true],
-        ['label' => 'Relatórios', 'route' => null, 'icon' => $icons['reports'], 'soon' => true],
+        ['label' => 'Relatórios', 'route' => 'portal.reports', 'icon' => $icons['reports'], 'soon' => false],
         ['label' => 'Solicitações', 'route' => null, 'icon' => $icons['briefs'], 'soon' => true],
     ];
 @endphp
