@@ -3,8 +3,10 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Agency\ApprovalController as AgencyApprovalController;
+use App\Http\Controllers\Agency\BackupController;
 use App\Http\Controllers\Agency\CalendarController;
 use App\Http\Controllers\Agency\ClientController;
+use App\Http\Controllers\Agency\ClientDataController;
 use App\Http\Controllers\Agency\DashboardController as AgencyDashboard;
 use App\Http\Controllers\Agency\IntegrationController;
 use App\Http\Controllers\Agency\MediaController as AgencyMediaController;
@@ -142,6 +144,10 @@ Route::middleware(['auth', 'agency'])->prefix('painel')->name('painel.')->group(
     Route::get('/clientes', [ClientController::class, 'index'])->name('clients.index');
     Route::get('/clientes/{client}', [ClientController::class, 'show'])->name('clients.show');
 
+    // LGPD (Seção 10): exportar e excluir definitivamente os dados do cliente.
+    Route::post('/clientes/{client}/exportar-dados', [ClientDataController::class, 'export'])->name('clients.export');
+    Route::delete('/clientes/{client}', [ClientDataController::class, 'destroy'])->name('clients.destroy');
+
     Route::get('/aprovacoes', AgencyApprovalController::class)->name('approvals');
     Route::get('/calendario', CalendarController::class)->name('calendar');
     Route::get('/biblioteca', AgencyMediaController::class)->name('media');
@@ -186,6 +192,10 @@ Route::middleware(['auth'])->prefix('painel')->name('painel.')->group(function (
     Route::get('/configuracoes', SettingsController::class)
         ->middleware('can:viewAny,App\\Models\\Setting')
         ->name('settings');
+
+    Route::get('/configuracoes/backups/{arquivo}', [BackupController::class, 'download'])
+        ->where('arquivo', '[A-Za-z0-9.\\-]+')
+        ->name('settings.backup');
 });
 
 /*

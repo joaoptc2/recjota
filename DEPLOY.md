@@ -214,6 +214,7 @@ Botões disponíveis, cada um com explicação na tela:
 | Reconstruir os caches | Depois de limpar, para o sistema voltar a ficar rápido |
 | Processar a fila agora | Para conferir se e-mails e publicações estão saindo |
 | Registrar batimento / Rodar o agendador | Para testar o agendador sem esperar o cron |
+| Fazer backup do banco agora | Antes de uma atualização, ou para baixar uma cópia fresca |
 
 Ele **não aceita comando digitado**: só existe o que está nessa lista, com
 argumentos fixos no código.
@@ -308,11 +309,60 @@ Alguns planos levam até 20 minutos para a primeira execução. Se depois disso 
 
 ## 11. Backup
 
-A hospedagem compartilhada não garante backup próprio. Até a rotina automática
-da Fase 7, faça manualmente:
+O sistema faz **backup diário do banco** sozinho, às 02:30 UTC, em PHP puro
+(a hospedagem não tem `mysqldump`). O arquivo `.sql.gz` fica em
+`app/storage/app/backups`, fora do document root, e os últimos 14 dias são
+mantidos. Em **Configurações › Saúde do sistema** há a lista com botão de
+download, e o console de manutenção tem "Fazer backup do banco agora".
 
-- **Banco**: hPanel › Backups, ou phpMyAdmin › Exportar.
-- **Arquivos**: guarde uma cópia do `app/.env` (é o que tem a `APP_KEY`) e da
-  pasta `app/storage/app/`.
+A hospedagem compartilhada **não garante backup próprio**, então:
 
-Retenção recomendada: 14 dias, fora do servidor.
+- **Uma vez por semana**, baixe o backup mais recente para fora do servidor.
+- **Guarde uma cópia do `app/.env`** (é o que tem a `APP_KEY`; sem ela os
+  tokens das contas conectadas ficam ilegíveis) e da pasta `app/storage/app/`
+  (mídias, miniaturas, relatórios).
+
+Para restaurar: crie o banco vazio, importe o `.sql.gz` pelo phpMyAdmin
+(ele aceita gzip) e suba a pasta `storage/app/` de volta.
+
+---
+
+## 12. LGPD — exportar e excluir dados de um cliente
+
+Na página do cliente, seção **Dados do cliente (LGPD)**:
+
+- **Exportar dados (.zip)** — gestor ou administrador. Um arquivo com um JSON
+  por tabela (posts, aprovações, comentários, mídias, contas, pessoas,
+  auditoria) e as miniaturas. Tokens e senhas nunca saem.
+- **Excluir definitivamente** — só o proprietário, digitando o nome do cliente.
+  Apaga arquivos, registros e os usuários do portal que só pertenciam a ele.
+  Não há como desfazer; faça o backup antes.
+
+Retenção automática: auditoria além de 365 dias e log de publicação além de 90
+dias são apagados pelo agendador.
+
+---
+
+## 13. Checklist de produção
+
+Confira cada item antes de dar o sistema por entregue:
+
+1. **PHP CLI = PHP web.** No hPanel, a versão do PHP selecionada para o site e
+   a do binário usado no cron (`cron.sh` / `cron.php`) precisam ser a mesma,
+   8.2 ou superior. `/manutencao` mostra a versão que a web usa; o
+   `storage/logs/cron.log` mostra a do cron.
+2. **memory_limit ≥ 256M** em PHP Info (hPanel › PHP › Configuração). O PDF do
+   relatório e as miniaturas de imagens grandes precisam disso.
+3. **Cron rodando**: `/health` com `checks.cron_heartbeat.ok = true` até 20
+   minutos depois do cadastro.
+4. **SSL válido** e `APP_URL` começando com `https://`. O CSP força
+   `upgrade-insecure-requests` só em HTTPS.
+5. **E-mail**: em Configurações, envie um convite para você mesmo e confira a
+   chegada (e a pasta de spam). SPF, DKIM e DMARC configurados no domínio.
+6. **Publicação ponta a ponta** numa conta de teste do Instagram: conectar em
+   Integrações, agendar um post para daqui a 2 minutos, ver o status virar
+   "Publicado" e o link do post aparecer.
+7. **Backup**: depois da primeira madrugada, Configurações › Saúde do sistema
+   lista um arquivo `banco-…sql.gz`. Baixe e guarde.
+8. **Apague `diagnostico.php`** e `diagnostico.chave.txt` do document root, e
+   deixe `MAINTENANCE_TOKEN` vazio no `.env`.

@@ -23,6 +23,8 @@ use App\Support\Icons;
 use App\Support\Installation;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\LazyLoadingViolationException;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
@@ -87,10 +89,21 @@ class AppServiceProvider extends ServiceProvider
         // Atribuir coluna inexistente falha alto fora de produção.
         Model::preventSilentlyDiscardingAttributes(! app()->isProduction());
 
-        // preventLazyLoading fica para a Fase 7 (caça a N+1), junto com o
-        // eager loading explícito das telas. Ligar agora quebraria Policies que
-        // resolvem o registro pai sob demanda.
-        Model::preventLazyLoading(false);
+        // Fora de produção, qualquer relação carregada preguiçosamente numa
+        // coleção estoura: é assim que os N+1 aparecem nos testes antes de
+        // chegarem à hospedagem. Em produção só registra no log.
+        Model::preventLazyLoading(! app()->isProduction());
+        Model::handleLazyLoadingViolationUsing(function (Model $model, string $relation): void {
+            $mensagem = sprintf('Lazy loading de [%s] em [%s]', $relation, $model::class);
+
+            if (app()->isProduction()) {
+                Log::warning($mensagem);
+
+                return;
+            }
+
+            throw new LazyLoadingViolationException($model, $relation);
+        });
 
         Password::defaults(fn () => app()->isProduction()
             ? Password::min(10)->letters()->numbers()->uncompromised()

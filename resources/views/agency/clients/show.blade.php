@@ -175,10 +175,39 @@
                 </a>
             @empty
                 <x-empty-state title="Nenhum post ainda">
-                    O composer de postagem chega na Fase 2. O schema já está pronto para receber.
+                    Crie o primeiro post em Calendário › Novo post. Ele aparece aqui assim que for salvo.
                 </x-empty-state>
             @endforelse
         </section>
+
+        @can('update', $client)
+            <section class="card lg:col-span-3">
+                <header class="border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+                    <h2 class="text-sm font-semibold">Dados do cliente (LGPD)</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Exportar tudo que o sistema guarda sobre este cliente, ou apagar de vez.</p>
+                </header>
+                <div class="grid gap-4 p-4 lg:grid-cols-2">
+                    <form method="POST" action="{{ route('painel.clients.export', $client) }}">
+                        @csrf
+                        <p class="text-sm">Um .zip com posts, aprovações, comentários, mídias (miniaturas), contas conectadas (sem tokens), pessoas e auditoria, em JSON.</p>
+                        <button type="submit" class="btn-secondary mt-3 !text-xs">Exportar dados (.zip)</button>
+                    </form>
+
+                    @can('delete', $client)
+                        <form method="POST" action="{{ route('painel.clients.destroy', $client) }}"
+                              onsubmit="return confirm('Excluir {{ $client->name }} e TODOS os seus dados? Não há como desfazer.')">
+                            @csrf
+                            @method('DELETE')
+                            <p class="text-sm text-rose-700 dark:text-rose-300">Exclusão definitiva: posts, mídias, relatórios, contas e os usuários do portal que só pertencem a este cliente. Não pode ser desfeita.</p>
+                            <label for="confirmacao" class="label mt-3">Digite o nome do cliente para confirmar</label>
+                            <input id="confirmacao" name="confirmacao" type="text" class="input" autocomplete="off" placeholder="{{ $client->name }}" required>
+                            @error('confirmacao')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
+                            <button type="submit" class="mt-3 inline-flex items-center rounded-lg bg-rose-600 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-700">Excluir definitivamente</button>
+                        </form>
+                    @endcan
+                </div>
+            </section>
+        @endcan
 
         <section class="card lg:col-span-3">
             <header class="border-b border-slate-200 px-4 py-3 dark:border-slate-800">

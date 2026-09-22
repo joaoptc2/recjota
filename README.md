@@ -8,7 +8,7 @@ O princípio condutor é esse: o gargalo de uma agência não é publicar, é
 conseguir aprovação. Cada decisão de produto aqui existe para reduzir atrito no
 ciclo `criar → revisar → aprovar → publicar`.
 
-## Estado atual: Fases 1 a 6 concluídas
+## Estado atual: todas as 7 fases concluídas
 
 | Fase | Escopo | Situação |
 |------|--------|----------|
@@ -18,7 +18,7 @@ ciclo `criar → revisar → aprovar → publicar`.
 | 4 | Integração Instagram (OAuth, ponte de mídia, motor de publicação) | ✅ entregue |
 | 5 | Google Drive e OneDrive (OAuth, seletor, ponte de mídia) | ✅ entregue |
 | 6 | Métricas e relatórios (coleta diária, painéis, PDF white-label, CSV, envio mensal) | ✅ entregue |
-| 7 | Refino, performance, acessibilidade e documentação final | pendente |
+| 7 | Refino: N+1, índices, cache, backup diário, LGPD, CSP, páginas de erro, manual | ✅ entregue |
 
 ## Como isto chega na hospedagem
 
@@ -145,6 +145,34 @@ Ninguém escreve `status` direto: usa-se `Post::transitionTo()`.
 
 **Sem worker.** Um único cron chama `schedule:run`; a fila é drenada em janelas
 de 50 s com `--stop-when-empty`. Ver `routes/console.php` e `cron.sh`.
+
+### O que a Fase 7 acrescentou
+
+- **N+1 sob vigilância**: `Model::preventLazyLoading()` fora de produção — um
+  lazy load numa coleção derruba o teste em vez de virar dezenas de queries na
+  hospedagem. Em produção só registra no log.
+- **Índices** para o que o cron consulta a cada minuto (retry, containers) e
+  para métricas/relatórios (`2026_09_22_120000_add_phase7_indexes`).
+- **Cache** do resumo de métricas por 5 minutos (driver `database`).
+- **Backup diário do banco** em PHP puro (`backup:database`, 02:30 UTC): dump
+  `.sql.gz` em `storage/app/backups`, retenção de 14 dias, download em
+  Configurações › Saúde do sistema e botão em `/manutencao`. Baixe uma cópia
+  por semana para fora do servidor.
+- **Retenção de logs**: auditoria além de 365 dias (`activitylog:clean`, dia 2
+  de cada mês) e log de publicação além de 90 dias (`model:prune`, diário).
+- **LGPD**: na página do cliente, "Exportar dados (.zip)" (JSON por tabela +
+  miniaturas, sem tokens) e "Excluir definitivamente" (só owner, exige digitar
+  o nome; apaga arquivos, registros e os usuários do portal exclusivos daquele
+  cliente; fica um único registro de auditoria da exclusão).
+- **CSP e cabeçalhos**: `Content-Security-Policy` com `object-src 'none'`,
+  `frame-ancestors 'self'`, `form-action` restrito aos provedores OAuth e
+  `frame-src` só para o Google Picker; `Permissions-Policy`; HSTS em HTTPS.
+  `script-src` mantém `'unsafe-inline'`/`'unsafe-eval'` por exigência do
+  Livewire/Alpine.
+- **Páginas de erro** 403/404/419/429/500/503 em pt-BR, cada uma com "o que
+  aconteceu" e "o que fazer".
+- **Manual do usuário** em [docs/MANUAL.md](docs/MANUAL.md) e checklist de
+  produção no [DEPLOY.md](DEPLOY.md).
 
 ## Providências fora do código (começam no dia 1)
 

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\PublishLog;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
@@ -66,6 +67,25 @@ Schedule::call(fn () => Artisan::call('tokens:refresh'))
 Schedule::call(fn () => Artisan::call('cloud:refresh-tokens'))
     ->name('renovar-tokens-nuvem')
     ->dailyAt('03:20')
+    ->withoutOverlapping(30);
+
+// Backup diário do banco (Seção 10), em PHP puro, com retenção de 14 dias.
+// 02:30 UTC: antes da renovação de tokens e das métricas.
+Schedule::call(fn () => Artisan::call('backup:database'))
+    ->name('backup-banco')
+    ->dailyAt('02:30')
+    ->withoutOverlapping(60);
+
+// Retenção de logs (LGPD, Seção 10): auditoria além de 365 dias e log de
+// publicação além de 90 dias saem; o backup diário preserva o histórico.
+Schedule::call(fn () => Artisan::call('activitylog:clean'))
+    ->name('limpar-auditoria')
+    ->monthlyOn(2, '02:00')
+    ->withoutOverlapping(60);
+
+Schedule::call(fn () => Artisan::call('model:prune', ['--model' => [PublishLog::class]]))
+    ->name('limpar-logs-publicacao')
+    ->dailyAt('02:50')
     ->withoutOverlapping(30);
 
 // Métricas (Seção 6.8): coleta espaçada para não concentrar CPU. Cada

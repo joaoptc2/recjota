@@ -6,8 +6,10 @@ namespace App\Models;
 
 use App\Support\Enums\PublishStage;
 use Database\Factories\PublishLogFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Prunable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
@@ -19,6 +21,11 @@ class PublishLog extends Model
 {
     /** @use HasFactory<PublishLogFactory> */
     use HasFactory;
+
+    use Prunable;
+
+    /** Log de publicação vale para diagnóstico recente; além disto só ocupa espaço (Seção 10). */
+    public const RETENTION_DAYS = 90;
 
     public const UPDATED_AT = null;
 
@@ -47,5 +54,11 @@ class PublishLog extends Model
     public function post(): BelongsTo
     {
         return $this->belongsTo(Post::class);
+    }
+
+    /** @return Builder<static> */
+    public function prunable(): Builder
+    {
+        return static::query()->where('created_at', '<', now()->subDays(self::RETENTION_DAYS));
     }
 }

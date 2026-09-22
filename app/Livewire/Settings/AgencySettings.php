@@ -21,8 +21,10 @@ use App\Support\Settings;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection as BaseCollection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
@@ -260,6 +262,29 @@ class AgencySettings extends Component
         $this->saidaRetry = $reenfileirar($uuid);
 
         unset($this->failedJobs, $this->failedJobsCount, $this->queueSize);
+    }
+
+    /**
+     * Backups diários do banco (Seção 10), do mais novo para o mais velho.
+     *
+     * @return array<int, array{nome: string, bytes: int, quando: Carbon}>
+     */
+    #[Computed]
+    public function backups(): array
+    {
+        $pasta = storage_path('app/backups');
+
+        if (! is_dir($pasta)) {
+            return [];
+        }
+
+        return collect(File::files($pasta))
+            ->filter(fn ($f) => preg_match('/^banco-\d{4}-\d{2}-\d{2}-\d{6}\.sql\.gz$/', $f->getFilename()) === 1)
+            ->sortByDesc(fn ($f) => $f->getMTime())
+            ->take(14)
+            ->map(fn ($f) => ['nome' => $f->getFilename(), 'bytes' => $f->getSize(), 'quando' => Carbon::createFromTimestamp($f->getMTime(), 'UTC')])
+            ->values()
+            ->all();
     }
 
     public function render(): View

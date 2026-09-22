@@ -75,6 +75,31 @@
                 <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Nenhum job falhado. Quando um falhar, o erro aparece aqui com o botão para reenfileirar.</p>
             @endforelse
         </div>
+
+        <div class="border-t border-slate-100 px-4 py-3 dark:border-slate-800">
+            <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Backups do banco</h3>
+            @php $backups = $this->backups(); @endphp
+            @if ($backups === [])
+                <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                    Nenhum backup ainda. O sistema gera um todo dia às 02:30 UTC e guarda os últimos 14; para gerar agora, use
+                    "Fazer backup do banco agora" em <code>/manutencao</code>. Baixe uma cópia por semana para fora do servidor.
+                </p>
+            @else
+                @php $ultimo = $backups[0]['quando']; @endphp
+                <p class="mt-1 text-xs {{ $ultimo->lessThan(now()->subHours(36)) ? 'text-rose-600 dark:text-rose-300' : 'text-slate-500 dark:text-slate-400' }}">
+                    Último backup {{ display_datetime($ultimo, auth()->user()) }}{{ $ultimo->lessThan(now()->subHours(36)) ? ' — há mais de um dia; confira se o cron está rodando.' : '.' }}
+                    Baixe uma cópia por semana para fora do servidor: a hospedagem não garante backup próprio.
+                </p>
+                <ul class="mt-2 divide-y divide-slate-100 text-sm dark:divide-slate-800">
+                    @foreach ($backups as $backup)
+                        <li class="flex items-center justify-between gap-3 py-2">
+                            <span class="min-w-0 truncate">{{ $backup['nome'] }} <span class="text-xs text-slate-400">· {{ number_format($backup['bytes'] / 1024, 0, ',', '.') }} KB</span></span>
+                            <a href="{{ route('painel.settings.backup', $backup['nome']) }}" class="btn-secondary !px-3 !py-1 !text-xs">Baixar</a>
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
+        </div>
     </section>
 
     {{-- Branding --}}

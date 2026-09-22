@@ -63,6 +63,13 @@ final class MaintenanceCommands
                 'parametros' => [],
                 'perigo' => false,
             ],
+            'backup' => [
+                'titulo' => 'Fazer backup do banco agora',
+                'descricao' => 'Gera um dump .sql.gz em storage/app/backups (o mesmo que roda todo dia às 02:30 UTC). O download fica em Configurações.',
+                'comando' => 'backup:database',
+                'parametros' => [],
+                'perigo' => false,
+            ],
             'schedule-run' => [
                 'titulo' => 'Rodar o agendador uma vez',
                 'descricao' => 'Executa o que estiver vencido no Scheduler. É exatamente o que o cron faz a cada minuto.',

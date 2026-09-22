@@ -12,6 +12,7 @@ use App\Support\Display;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -52,12 +53,16 @@ class MetricsDashboard extends Component
         unset($this->summary);
     }
 
+    /** Cache de 5 min (driver database): a coleta é diária, e o cálculo percorre meses de linhas. */
+    public const CACHE_SECONDS = 300;
+
     #[Computed]
     public function summary(): MetricsPeriodSummary
     {
         [$de, $ate] = $this->range();
+        $chave = sprintf('metrics-summary:%d:%s:%s', $this->client->getKey(), $this->period, $ate->toDateString());
 
-        return app(MetricsSummary::class)->forClient($this->client, $de, $ate);
+        return Cache::remember($chave, self::CACHE_SECONDS, fn () => app(MetricsSummary::class)->forClient($this->client, $de, $ate));
     }
 
     /** @return Collection<int, Report> */
