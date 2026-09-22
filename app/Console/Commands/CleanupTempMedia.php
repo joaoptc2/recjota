@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Services\Media\CloudTempStore;
 use App\Services\Media\PublicMediaBridge;
 use Illuminate\Console\Command;
 
@@ -21,10 +22,15 @@ class CleanupTempMedia extends Command
 
     protected $description = 'Remove da ponte pública as cópias de mídia vencidas (e, com --orfaos, as órfãs)';
 
-    public function handle(PublicMediaBridge $ponte): int
+    public function handle(PublicMediaBridge $ponte, CloudTempStore $nuvem): int
     {
         $vencidas = $ponte->purgeExpired();
         $this->info(sprintf('%d cópia(s) vencida(s) removida(s).', $vencidas));
+
+        // Originais baixados da nuvem (Fase 5) vivem fora do webroot e têm o
+        // próprio prazo; passam pelo mesmo expurgo horário.
+        $baixados = $nuvem->purgeExpired();
+        $this->info(sprintf('%d download(s) temporário(s) da nuvem removido(s).', $baixados));
 
         if ($this->option('orfaos')) {
             $orfas = $ponte->sweepOrphans();

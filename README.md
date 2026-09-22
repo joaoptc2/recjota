@@ -8,7 +8,7 @@ O princípio condutor é esse: o gargalo de uma agência não é publicar, é
 conseguir aprovação. Cada decisão de produto aqui existe para reduzir atrito no
 ciclo `criar → revisar → aprovar → publicar`.
 
-## Estado atual: Fases 1 a 4 concluídas
+## Estado atual: Fases 1 a 5 concluídas
 
 | Fase | Escopo | Situação |
 |------|--------|----------|
@@ -16,7 +16,7 @@ ciclo `criar → revisar → aprovar → publicar`.
 | 2 | Conteúdo e calendário (composer, biblioteca de mídia, 4 visões) | ✅ entregue |
 | 3 | Aprovação (versionamento, links mágicos, portal, notificações) | ✅ entregue |
 | 4 | Integração Instagram (OAuth, ponte de mídia, motor de publicação) | ✅ entregue |
-| 5 | Google Drive e OneDrive | pendente |
+| 5 | Google Drive e OneDrive (OAuth, seletor, ponte de mídia) | ✅ entregue |
 | 6 | Métricas e relatórios | pendente |
 | 7 | Refino, performance, acessibilidade e documentação final | pendente |
 
@@ -165,10 +165,36 @@ Levam semanas e são o caminho crítico do projeto:
    configurar a tela de consentimento com o escopo `drive.file` (não-sensível —
    escopos amplos disparam verificação anual paga).
 6. Registrar o app no **Microsoft Entra ID** (multi-tenant, plataforma Web) com
-   verificação de publisher. Escopos: `Files.Read`, `Files.ReadWrite`,
-   `offline_access` e `Sites.Read.All` — sem o último o File Picker v8 não
-   funciona.
+   verificação de publisher. Escopos: `Files.Read`, `offline_access`,
+   `User.Read` e `Sites.Read.All`.
 7. Configurar **SPF, DKIM e DMARC** no domínio.
+
+### Como a nuvem funciona (Fase 5)
+
+- **Google Drive**: OAuth no servidor com `access_type=offline` + `prompt=consent`
+  (é o que devolve o refresh token) e escopo `drive.file`. Como esse escopo só
+  mostra ao app o que a pessoa escolheu, a escolha é pelo **Google Picker** no
+  navegador (carregado do CDN da Google, sem npm). O token do Picker sai de uma
+  rota protegida pela Policy (`painel/integracoes/nuvem/{conexão}/token`).
+  Preencha `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_API_KEY` e
+  `GOOGLE_REDIRECT_URI` (= `APP_URL/oauth/google/callback`, cadastrado no
+  console). O `app_id` do Picker é o número do projeto, prefixo do client id.
+- **OneDrive**: OAuth 2.0 no Entra ID (`MS_TENANT=common` aceita conta pessoal
+  e corporativa) e navegação pelas pastas via **Microsoft Graph** (`/me/drive`),
+  no servidor. Optamos por não embutir o File Picker v8: ele exige um token por
+  recurso (SharePoint do tenant ou `onedrive.live.com`) com comportamentos
+  distintos entre conta pessoal e corporativa, e o Graph resolve os dois casos
+  com o mesmo código e o mesmo token. Contas pessoais e corporativas são
+  suportadas; testadas com fixtures do Graph em `tests/Fixtures/microsoft`.
+- **O original nunca fica no servidor** (R8): a importação baixa o arquivo para
+  `storage/app/cloud-tmp` (fora do webroot), valida o MIME real, gera miniatura
+  e preview, grava `source`, `external_file_id` e a conexão, e apaga o download.
+  Na hora de publicar, `CloudSourceReader` baixa de novo para a ponte de mídia.
+- **Tokens**: access token de 1h renovado sob demanda pelo refresh token
+  (`CloudTokenManager`); `cloud:refresh-tokens` roda todo dia às 03:20 UTC para
+  manter o refresh token da Microsoft vivo e avisar o gestor quando o acesso é
+  revogado. Desconectar não apaga os arquivos importados; eles só voltam a
+  publicar depois de reconectar.
 
 ## Deploy
 

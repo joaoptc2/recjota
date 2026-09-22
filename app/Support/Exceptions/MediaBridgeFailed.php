@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Support\Exceptions;
 
+use App\Models\CloudConnection;
 use App\Models\MediaAsset;
+use App\Services\Integrations\Cloud\CloudApiException;
 use DomainException;
 
 /**
@@ -39,6 +41,36 @@ final class MediaBridgeFailed extends DomainException
             'A mídia "%s" vem de %s, origem que ainda não pode ser publicada automaticamente. Envie o arquivo por upload e substitua-o no post.',
             $asset->filename,
             $asset->source?->label() ?? 'origem desconhecida',
+        ));
+    }
+
+    public static function cloudConnectionMissing(MediaAsset $asset): self
+    {
+        return new self(sprintf(
+            'A mídia "%s" veio do %s, mas a conexão com essa conta não existe mais. Reconecte a nuvem na página do cliente e importe o arquivo de novo.',
+            $asset->filename,
+            $asset->source?->label() ?? 'nuvem',
+        ));
+    }
+
+    public static function cloudConnectionBroken(MediaAsset $asset, CloudConnection $conexao): self
+    {
+        return new self(sprintf(
+            'A mídia "%s" está no %s (%s), mas essa conexão precisa ser refeita: %s',
+            $asset->filename,
+            $conexao->provider->label(),
+            $conexao->label(),
+            $conexao->last_error ?? 'clique em "Reconectar" na página do cliente.',
+        ));
+    }
+
+    public static function cloudDownloadFailed(MediaAsset $asset, CloudApiException $erro): self
+    {
+        return new self(sprintf(
+            'Não foi possível baixar "%s" do %s: %s',
+            $asset->filename,
+            $erro->provider->label(),
+            $erro->actionableMessage(),
         ));
     }
 

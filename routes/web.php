@@ -19,6 +19,7 @@ use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Install\InstallController;
+use App\Http\Controllers\Integrations\CloudOAuthController;
 use App\Http\Controllers\Integrations\InstagramOAuthController;
 use App\Http\Controllers\MaintenanceConsoleController;
 use App\Http\Controllers\MediaController;
@@ -151,6 +152,15 @@ Route::middleware(['auth', 'agency'])->prefix('painel')->name('painel.')->group(
     // cliente nunca vê esta tela.
     Route::get('/integracoes/instagram/conectar/{client}', [InstagramOAuthController::class, 'redirect'])
         ->name('integrations.instagram.connect');
+
+    // Nuvem (Seções 7.2/7.3): {provider} é google ou microsoft.
+    Route::get('/integracoes/nuvem/{provider}/conectar/{client}', [CloudOAuthController::class, 'redirect'])
+        ->where('provider', 'google|microsoft')
+        ->name('integrations.cloud.connect');
+    Route::post('/integracoes/nuvem/{connection}/desconectar', [CloudOAuthController::class, 'disconnect'])
+        ->name('integrations.cloud.disconnect');
+    Route::get('/integracoes/nuvem/{connection}/token', [CloudOAuthController::class, 'token'])
+        ->name('integrations.cloud.token');
 });
 
 /*
@@ -178,6 +188,9 @@ Route::middleware(['auth'])->prefix('painel')->name('painel.')->group(function (
 Route::middleware(['auth', 'agency'])->prefix('oauth')->name('oauth.')->group(function (): void {
     Route::get('/instagram/callback', [InstagramOAuthController::class, 'callback'])
         ->name('instagram.callback');
+    Route::get('/{provider}/callback', [CloudOAuthController::class, 'callback'])
+        ->where('provider', 'google|microsoft')
+        ->name('cloud.callback');
 });
 
 /*

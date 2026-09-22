@@ -27,13 +27,19 @@
         Enviando e gerando miniaturas…
     </div>
 
+    @can('create', \App\Models\MediaAsset::class)
+        <div class="mt-3">
+            <livewire:media.cloud-picker :client="$client" :folder-id="$folderId" :key="'nuvem-'.$client->getKey()" />
+        </div>
+    @endcan
+
     @error('uploads')<p class="mt-2 text-sm text-rose-600">{{ $message }}</p>@enderror
 
     @if ($this->assets()->isEmpty())
         <div class="card mt-4">
             <x-empty-state title="Nenhum arquivo aqui ainda">
-                Envie imagens e vídeos por este formulário. O original fica guardado fora da área pública;
-                a interface usa apenas miniaturas.
+                Envie imagens e vídeos por este formulário ou escolha do Google Drive / OneDrive do cliente.
+                O original fica fora da área pública; a interface usa apenas miniaturas.
             </x-empty-state>
         </div>
     @else

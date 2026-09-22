@@ -56,6 +56,21 @@ return [
 
     /*
     |---------------------------------------------------------------------------
+    | Originais baixados da nuvem para a ponte (Secao 7.2 / 7.3) - fora do webroot
+    |---------------------------------------------------------------------------
+    | O original de Drive/OneDrive nunca fica no servidor (R8): e baixado para
+    | esta pasta so na hora de publicar, copiado para a ponte e apagado pelo
+    | cron horario quando passa do prazo.
+    */
+    'cloud_temp' => [
+        'path' => env('CLOUD_TEMP_PATH', storage_path('app/cloud-tmp')),
+        'ttl_hours' => (int) env('CLOUD_TEMP_TTL_HOURS', 2),
+        // Tamanho maximo aceito num import (bytes): 100 MB, o limite de video da Meta.
+        'max_bytes' => 100 * 1024 * 1024,
+    ],
+
+    /*
+    |---------------------------------------------------------------------------
     | Limites da plataforma impostos pelo proprio sistema (Secao 7.1.5)
     |---------------------------------------------------------------------------
     */

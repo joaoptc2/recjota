@@ -1,0 +1,7 @@
+{
+  "token_type": "Bearer",
+  "scope": "Files.Read Sites.Read.All User.Read openid email profile",
+  "expires_in": 3600,
+  "access_token": "EwBwA8l6BAAUtokenRenovadoDaMicrosoft11111111111111111111111111111111111111",
+  "refresh_token": "M.C512_BAY.0.U.-refreshTokenRenovadoDaMicrosoft1111111111111111111111111"
+}

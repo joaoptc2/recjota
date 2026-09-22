@@ -29,7 +29,7 @@ class ClientController extends Controller
         $this->authorize('view', $client);
 
         return view('agency.clients.show', [
-            'client' => $client->load(['settings', 'socialAccounts', 'users']),
+            'client' => $client->load(['settings', 'socialAccounts', 'cloudConnections', 'users']),
             'recentPosts' => $client->posts()
                 ->with('socialAccount')
                 ->orderByDesc('scheduled_at')

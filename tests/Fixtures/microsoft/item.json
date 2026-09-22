@@ -1,0 +1,8 @@
+{
+  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#driveItem",
+  "id": "01FOTOVITRINE00000000000000000000",
+  "name": "vitrine.jpg",
+  "size": 48213,
+  "file": {"mimeType": "image/jpeg", "hashes": {"quickXorHash": "abc"}},
+  "lastModifiedDateTime": "2026-09-19T09:30:00Z"
+}

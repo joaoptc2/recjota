@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": 404,
+    "message": "File not found: 1AbCdEfGhIjKlMnOpQrStUvWxYz0123456.",
+    "errors": [{"message": "File not found", "domain": "global", "reason": "notFound"}],
+    "status": "NOT_FOUND"
+  }
+}

@@ -60,6 +60,14 @@ Schedule::call(fn () => Artisan::call('tokens:refresh'))
     ->dailyAt('03:00')
     ->withoutOverlapping(30);
 
+// Nuvem (Seções 7.2/7.3): renovar todo dia mantém o refresh token da
+// Microsoft vivo (expira após 90 dias sem uso) e detecta consentimento
+// retirado antes que um post agendado falhe por isso.
+Schedule::call(fn () => Artisan::call('cloud:refresh-tokens'))
+    ->name('renovar-tokens-nuvem')
+    ->dailyAt('03:20')
+    ->withoutOverlapping(30);
+
 // Ponte de mídia pública (Seção 7.4): cópias vencidas saem de hora em hora.
 Schedule::call(fn () => Artisan::call('media:cleanup-temp'))
     ->name('limpar-ponte')

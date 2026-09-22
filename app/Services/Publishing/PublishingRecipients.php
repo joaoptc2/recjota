@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Publishing;
 
+use App\Models\Client;
 use App\Models\Post;
+use App\Models\Scopes\ClientScope;
 use App\Models\User;
 use App\Support\Enums\RoleName;
 use App\Support\Enums\UserType;
@@ -22,7 +24,20 @@ class PublishingRecipients
     /** @return Collection<int, User> */
     public function managers(Post $post): Collection
     {
-        $cliente = $post->client;
+        return $this->managersForClient($post->client);
+    }
+
+    /**
+     * Gestores de um cliente (por model ou id; cliente arquivado cai no
+     * fallback de owner/admin).
+     *
+     * @return Collection<int, User>
+     */
+    public function managersForClient(Client|int|null $client): Collection
+    {
+        $cliente = $client instanceof Client
+            ? $client
+            : ($client === null ? null : Client::query()->withoutGlobalScope(ClientScope::class)->find($client));
 
         $gestores = $cliente === null ? new Collection : $cliente->users()
             ->where('users.type', UserType::Agency->value)

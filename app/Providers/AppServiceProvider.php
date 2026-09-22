@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Models\Client;
+use App\Models\CloudConnection;
 use App\Models\MediaAsset;
 use App\Models\Post;
 use App\Models\Scopes\ClientScope;
 use App\Services\Integrations\Instagram\InstagramPublisher;
 use App\Services\Integrations\SocialPublisherInterface;
+use App\Services\Media\CloudSourceReader;
+use App\Services\Media\CompositeSourceReader;
 use App\Services\Media\Contracts\MediaSourceReader;
 use App\Services\Media\MediaProcessor;
 use App\Services\Media\UploadSourceReader;
@@ -38,9 +41,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(ImageManager::class, fn () => new ImageManager(new Driver));
         $this->app->singleton(MediaProcessor::class);
 
-        // Ponte de mídia pública (Seção 7.4): hoje só lê upload local. Na
-        // Fase 5 esta ligação passa a um leitor composto (Drive/OneDrive).
-        $this->app->bind(MediaSourceReader::class, UploadSourceReader::class);
+        // Ponte de mídia pública (Seção 7.4): o leitor composto escolhe entre
+        // upload local e nuvem (Drive/OneDrive) pela origem do asset.
+        $this->app->bind(MediaSourceReader::class, fn ($app) => new CompositeSourceReader(
+            $app->make(UploadSourceReader::class),
+            $app->make(CloudSourceReader::class),
+        ));
 
         // O motor de publicação (Seção 8) só conhece a interface; hoje a única
         // plataforma é o Instagram.
@@ -117,5 +123,6 @@ class AppServiceProvider extends ServiceProvider
         Route::bind('client', $unscoped(Client::class));
         Route::bind('post', $unscoped(Post::class));
         Route::bind('asset', $unscoped(MediaAsset::class));
+        Route::bind('connection', $unscoped(CloudConnection::class));
     }
 }

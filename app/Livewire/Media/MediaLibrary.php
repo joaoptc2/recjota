@@ -12,6 +12,7 @@ use App\Models\MediaFolder;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
@@ -91,6 +92,18 @@ class MediaLibrary extends Component
         }
 
         $this->dispatch('midia-selecionada', mediaId: $assetId);
+    }
+
+    /** Arquivo veio do Drive/OneDrive: aparece na grade e, no modo seleção, já entra selecionado. */
+    #[On('midia-importada')]
+    public function refreshAfterImport(int $mediaId): void
+    {
+        unset($this->assets);
+        $this->resetPage();
+
+        if ($this->picker && ! in_array($mediaId, $this->selected, true)) {
+            $this->toggle($mediaId);
+        }
     }
 
     public function delete(int $assetId): void

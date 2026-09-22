@@ -1,0 +1,6 @@
+{
+  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#driveItems",
+  "value": [
+    {"id": "01REELSDOCLIENTE00000000000000000", "name": "reels-paes.mp4", "size": 18400000, "file": {"mimeType": "video/mp4"}, "lastModifiedDateTime": "2026-09-19T09:30:00Z"}
+  ]
+}

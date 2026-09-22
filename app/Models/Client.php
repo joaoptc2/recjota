@@ -84,6 +84,11 @@ class Client extends Model
         return $this->hasMany(SocialAccount::class);
     }
 
+    public function cloudConnections(): HasMany
+    {
+        return $this->hasMany(CloudConnection::class);
+    }
+
     public function posts(): HasMany
     {
         return $this->hasMany(Post::class);
